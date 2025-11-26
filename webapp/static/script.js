@@ -6,6 +6,7 @@ async function fetchDesks() {
     const res = await fetch("/api/desks");
     const desks = await res.json();
     const container = document.getElementById("desks");
+    
     // Preserve current input values
     const heightInputs = {};
     const hourInputs = {};
@@ -21,40 +22,78 @@ async function fetchDesks() {
         const schedHeightInp = document.getElementById(`sched_height_${d.id}`);
         if (schedHeightInp) schedHeightInputs[d.id] = schedHeightInp.value;
     });
-    container.innerHTML = "";
+
+    // Build table structure
+    let tableHtml = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Desk Name (ID)</th>
+                    <th>Position</th>
+                    <th>Controls</th>
+                    <th>Set Height</th>
+                    <th>Lock</th>
+                    <th>Schedule</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
     desks.forEach(d => {
-        const div = document.createElement("div");
-        div.innerHTML = `
-            <b>${d.name}</b> (ID: ${d.id})<br>
-            Position: <span id="pos_${d.id}">${d.position}</span> mm<br>
-            <button onclick="move('${d.id}', 'up')">Up</button>
-            <button onclick="move('${d.id}', 'down')">Down</button>
-            <input type="number" id="height_${d.id}" placeholder="mm">
-            <button onclick="setHeight('${d.id}')">Set Height</button>
-            <button id="lock_${d.id}" onclick="toggleLock('${d.id}')">Lock Height</button><br>
-            <input type="number" id="hour_${d.id}" placeholder="hour (0-23)">
-            <input type="number" id="minute_${d.id}" placeholder="minute (0-59)">
-            <input type="number" id="sched_height_${d.id}" placeholder="mm">
-            <button onclick="schedule('${d.id}')">Schedule</button>
-            <hr>
+        tableHtml += `
+            <tr>
+                <td><b>${d.name}</b> (ID: ${d.id})</td>
+                <td><span id="pos_${d.id}">${d.position}</span> mm</td>
+                <td>
+                    <button class="btn-up" onclick="move('${d.id}', 'up')">Up</button>
+                    <button class="btn-down" onclick="move('${d.id}', 'down')">Down</button>
+                </td>
+                <td>
+                    <input type="number" id="height_${d.id}" placeholder="mm">
+                    <button class="btn-step" onclick="setHeight('${d.id}')">Set</button>
+                </td>
+                <td>
+                    <button id="lock_${d.id}" class="btn-stop" onclick="toggleLock('${d.id}')">Lock Height</button>
+                </td>
+                <td>
+                    <input type="number" id="hour_${d.id}" placeholder="H">
+                    <input type="number" id="minute_${d.id}" placeholder="M">
+                    <input type="number" id="sched_height_${d.id}" placeholder="mm">
+                    <button class="btn-step" onclick="schedule('${d.id}')">Schedule</button>
+                </td>
+            </tr>
         `;
-        container.appendChild(div);
-        // Restore previous input values if present
+    });
+
+    tableHtml += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = tableHtml;
+
+    // Restore previous input values if present
+    desks.forEach(d => {
         if (heightInputs[d.id]) {
-            document.getElementById(`height_${d.id}`).value = heightInputs[d.id];
+            const el = document.getElementById(`height_${d.id}`);
+            if(el) el.value = heightInputs[d.id];
         }
         if (hourInputs[d.id]) {
-            document.getElementById(`hour_${d.id}`).value = hourInputs[d.id];
+            const el = document.getElementById(`hour_${d.id}`);
+            if(el) el.value = hourInputs[d.id];
         }
         if (minuteInputs[d.id]) {
-            document.getElementById(`minute_${d.id}`).value = minuteInputs[d.id];
+            const el = document.getElementById(`minute_${d.id}`);
+            if(el) el.value = minuteInputs[d.id];
         }
         if (schedHeightInputs[d.id]) {
-            document.getElementById(`sched_height_${d.id}`).value = schedHeightInputs[d.id];
+            const el = document.getElementById(`sched_height_${d.id}`);
+            if(el) el.value = schedHeightInputs[d.id];
         }
         // Set lock button state if already locked
         if (window.lockIntervals && window.lockIntervals[d.id]) {
-            document.getElementById(`lock_${d.id}`).textContent = "Unlock";
+            const btn = document.getElementById(`lock_${d.id}`);
+            if(btn) btn.textContent = "Unlock";
         }
     });
 }

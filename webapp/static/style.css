@@ -1,0 +1,131 @@
+/* Clean, modern, beginner-friendly table styling */
+body {
+    background: #f7f7fa;
+    color: #222;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 30px;
+    color: #333;
+}
+
+table {
+    border-collapse: collapse;
+    width: 90%;
+    margin: 40px auto;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+th,
+td {
+    border: none;
+    padding: 16px 20px;
+    text-align: left;
+}
+
+th {
+    background: #f0f0f5;
+    color: #444;
+    font-size: 1.1em;
+}
+
+tr {
+    transition: background 0.2s;
+}
+
+tr:nth-child(even) {
+    background: #f8f8fc;
+}
+
+tr:hover {
+    background: #e6f7ff;
+}
+
+button {
+    border: none;
+    padding: 8px 14px;
+    margin: 0 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    transition: background 0.2s, color 0.2s;
+    outline: none;
+    vertical-align: middle;
+}
+
+.btn-up {
+    background: #e6ffed;
+    color: #1a7f37;
+}
+
+.btn-up:hover {
+    background: #b7f5c7;
+}
+
+.btn-down {
+    background: #fff7e6;
+    color: #b26a00;
+}
+
+.btn-down:hover {
+    background: #ffe0b3;
+}
+
+.btn-stop {
+    background: #ffeaea;
+    color: #d32f2f;
+}
+
+.btn-stop:hover {
+    background: #ffbdbd;
+}
+
+button .icon {
+    font-size: 1.1em;
+    margin-right: 4px;
+}
+
+.btn-step {
+    background: #e6f1ff;   /* very light blue */
+    color: #1e5cb3; 
+}
+
+.btn-step:hover {
+    background: #c9e0ff;
+}
+
+.btn-selected{
+    border: 1px solid #1e5cb3;
+}
+
+input[type="number"]{
+    width:40px;
+    padding: 10px 14px;
+    font-size: 1em;
+    border-radius: 6px;
+    border: 1px solid #d1d1dc;
+    background: #ffffff;
+    color: #222;
+
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+input[type="number"]:hover{
+    background: #f7f7ff;
+}
+
+input[type="number"]:focus{
+    border-color: #1e5cb3;
+    box-shadow: 0 0 0 3px rgba(30, 92, 179, 0.2);
+    outline: none;
+}
