@@ -53,7 +53,9 @@ def list_desks():
         desks.append({
             "id": desk_id,
             "name": desk_data.get("config", {}).get("name", desk_id),
-            "position": desk_data.get("state", {}).get("position_mm", 0)
+            "position": desk_data.get("state", {}).get("position_mm", 0),
+            "usage": desk_data.get("usage", {}),
+            "lastErrors": desk_data.get("lastErrors", {})
         })
     return JSONResponse(desks)
 

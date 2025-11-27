@@ -2,9 +2,15 @@
 // Lock Height Feature
 window.lockIntervals = window.lockIntervals || {};
 
-async function fetchDesks() {
-    const res = await fetch("/api/desks");
-    const desks = await res.json();
+async function getDeskData() {
+    const resp = await fetch(`/api/desks`);
+    const data = await resp.json();
+    // console.log(data);
+    return data;
+}
+
+async function fetchDesks(desks) {
+    // const desks = await getDeskData();
     const container = document.getElementById("desks");
 
     let table = container.querySelector("table");
@@ -157,19 +163,23 @@ async function schedule(id) {
 async function getSchedule(desk_id) {
     const resp = await fetch(`/api/desks/get_schedule`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk_id: desk_id }) });
     const data = await resp.json();
-    console.log(data);
+    // console.log(data);
     return data;
 }
 
-async function updateSchedule() {
+async function updateSchedule(desks) {
+    console.log("Updating schedule...");
     const { schedule } = await getSchedule("all");
+    // const desks = await getDeskData();
+    console.log(schedule);
+
 
     const container = document.getElementById("schedule");
     container.innerHTML = `<h2>Desk Schedule</h2><table>
             <thead>
                 <tr>
                     <th>Desk Name (ID)</th>
-                    <th>Hour:Minute</th>
+                    <th>Time</th>
                     <th>Height</th>
                 </tr>
             </thead>
@@ -177,9 +187,10 @@ async function updateSchedule() {
         </table>`;
     const tbody = container.querySelector("tbody");
     schedule.forEach(s => {
+        const desk = desks.find(d => d.id == s.desk_id);
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${s.desk_id}</td>
+            <td><b>${desk.name}</b> (${desk.id})</td>
             <td>${(s.hour).toString().padStart(2, "0")}:${(s.minute).toString().padStart(2, "0")}</td>
             <td>${s.height}</td>
         `;
@@ -188,10 +199,11 @@ async function updateSchedule() {
 }
 
 async function updatePage() {
-    fetchDesks();
-    updateSchedule();
-
+    const desks = await getDeskData();
+    fetchDesks(desks);
+    updateSchedule(desks);
+    updateCharts(desks);
 }
 
-updatePage();
-setInterval(updatePage, 5000); // update page every 5s
+
+
