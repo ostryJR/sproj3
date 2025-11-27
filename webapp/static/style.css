@@ -95,20 +95,21 @@ button .icon {
 }
 
 .btn-step {
-    background: #e6f1ff;   /* very light blue */
-    color: #1e5cb3; 
+    background: #e6f1ff;
+    /* very light blue */
+    color: #1e5cb3;
 }
 
 .btn-step:hover {
     background: #c9e0ff;
 }
 
-.btn-selected{
+.btn-selected {
     border: 1px solid #1e5cb3;
 }
 
-input[type="number"]{
-    width:40px;
+input[type="number"] {
+    width: 60px;
     padding: 10px 14px;
     font-size: 1em;
     border-radius: 6px;
@@ -120,11 +121,11 @@ input[type="number"]{
     transition: border 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-input[type="number"]:hover{
+input[type="number"]:hover {
     background: #f7f7ff;
 }
 
-input[type="number"]:focus{
+input[type="number"]:focus {
     border-color: #1e5cb3;
     box-shadow: 0 0 0 3px rgba(30, 92, 179, 0.2);
     outline: none;
