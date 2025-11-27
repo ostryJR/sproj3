@@ -2,6 +2,13 @@
 // Lock Height Feature
 window.lockIntervals = window.lockIntervals || {};
 
+function updateClock() {
+    const now = new Date();
+    const pad = n => n.toString().padStart(2, '0');
+    const str = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    document.getElementById('clock').textContent = 'Current time: ' + str;
+}
+
 async function getDeskData() {
     const resp = await fetch(`/api/desks`);
     const data = await resp.json();
@@ -92,118 +99,9 @@ async function fetchDesks(desks) {
     getSchedule("all");
 }
 
-async function move(id, dir) {
-    const step = 50;
-    await fetch(`/api/desks/${id}/${dir}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ step }) });
-    await fetchDesks();
-}
-
-async function setHeight(id) {
-    const val = document.getElementById(`height_${id}`).value;
-    if (!val || isNaN(val)) {
-        alert("Please enter a valid height.");
-        return;
-    }
-    console.log(`Setting desk ${id} to height: ${val}`);
-    try {
-        for (let i = 0; i < 5; i++) {
-            const resp = await fetch(`/api/desks/${id}/set`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ height: val }) });
-            if (!resp.ok) {
-                const text = await resp.text();
-                alert(`Error setting height: ${resp.status} ${text}`);
-                break;
-            }
-            await new Promise(res => setTimeout(res, 1000));
-        }
-        await fetchDesks();
-    } catch (e) {
-        alert("Failed to set height: " + e);
-    }
-}
-
-function toggleLock(id) {
-    const btn = document.getElementById(`lock_${id}`);
-    if (window.lockIntervals[id]) {
-        clearInterval(window.lockIntervals[id]);
-        delete window.lockIntervals[id];
-        btn.textContent = "Lock Height";
-        console.log(`Lock released for desk ${id}`);
-    } else {
-        const val = document.getElementById(`height_${id}`).value;
-        if (!val) {
-            alert("Enter a height to lock.");
-            return;
-        }
-        window.lockIntervals[id] = setInterval(async () => {
-            try {
-                const resp = await fetch(`/api/desks/${id}/set`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ height: val }) });
-                if (!resp.ok) {
-                    const text = await resp.text();
-                    console.error(`Lock Height error for desk ${id}: ${resp.status} ${text}`);
-                } else {
-                    console.log(`Lock Height sent for desk ${id} to ${val}`);
-                }
-            } catch (e) {
-                console.error(`Lock Height failed for desk ${id}:`, e);
-            }
-        }, 1000);
-        btn.textContent = "Unlock";
-        console.log(`Lock engaged for desk ${id} at height ${val}`);
-    }
-}
-
-async function schedule(id) {
-    const h = document.getElementById(`hour_${id}`).value;
-    const m = document.getElementById(`minute_${id}`).value;
-    const val = document.getElementById(`sched_height_${id}`).value;
-    await fetch(`/api/desks/${id}/schedule`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hour: h, minute: m, height: val }) });
-    alert("Scheduled!");
-}
-
-async function getSchedule(desk_id) {
-    const resp = await fetch(`/api/desks/get_schedule`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk_id: desk_id }) });
-    const data = await resp.json();
-    // console.log(data);
-    return data;
-}
-
-async function updateSchedule(desks) {
-    console.log("Updating schedule...");
-    const { schedule } = await getSchedule("all");
-    // const desks = await getDeskData();
-    console.log(schedule);
-
-
-    const container = document.getElementById("schedule");
-    container.innerHTML = `<h2>Desk Schedule</h2><table>
-            <thead>
-                <tr>
-                    <th>Desk Name (ID)</th>
-                    <th>Time</th>
-                    <th>Height</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>`;
-    const tbody = container.querySelector("tbody");
-    schedule.forEach(s => {
-        const desk = desks.find(d => d.id == s.desk_id);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td><b>${desk.name}</b> (${desk.id})</td>
-            <td>${(s.hour).toString().padStart(2, "0")}:${(s.minute).toString().padStart(2, "0")}</td>
-            <td>${s.height}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
 async function updatePage() {
     const desks = await getDeskData();
     fetchDesks(desks);
     updateSchedule(desks);
     updateCharts(desks);
 }
-
-
-

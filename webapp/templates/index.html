@@ -8,6 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/script.js"></script>
     <script src="/static/charts.js"></script>
+    <script src="/static/deskcontrol.js"></script>
+    <script src="/static/deskschedule.js"></script>
 </head>
 
 <body>
@@ -29,19 +31,10 @@
     <div id="schedule" style="float:right; width:30%;"></div>
 
     <script>
-        function updateClock() {
-            const now = new Date();
-            const pad = n => n.toString().padStart(2, '0');
-            const str = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-            document.getElementById('clock').textContent = 'Current time: ' + str;
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-    </script>
-
-    <script>
         updatePage();
         setInterval(updatePage, 5000); // update page every 5s
+        updateClock();
+        setInterval(updateClock, 1000);
     </script>
 </body>
 
