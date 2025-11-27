@@ -7,8 +7,11 @@ import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.middleware.cors import CORSMiddleware
 
+
 SIMULATOR_URL = "http://127.0.0.1:8001"
-API_KEYS_FILE = "../config/api_keys.json"
+# Build all paths relative to this file's directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+API_KEYS_FILE = os.path.join(BASE_DIR, '..', 'config', 'api_keys.json')
 
 # Load API key
 def load_api_key():
@@ -21,7 +24,7 @@ app = FastAPI(title="Desk Controller Web App")
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, 'static')), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # allow JS fetch from browser
@@ -32,7 +35,8 @@ app.add_middleware(
 # Serve HTML frontend
 @app.get("/", response_class=HTMLResponse)
 def index():
-    with open("templates/index.html", "r") as f:
+    template_path = os.path.join(BASE_DIR, 'templates', 'index.html')
+    with open(template_path, "r") as f:
         return HTMLResponse(f.read())
 
 # List all desks
