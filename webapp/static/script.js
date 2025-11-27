@@ -83,6 +83,7 @@ async function fetchDesks() {
             row.remove();
         }
     });
+    getSchedule("all");
 }
 
 async function move(id, dir) {
@@ -153,5 +154,44 @@ async function schedule(id) {
     alert("Scheduled!");
 }
 
-fetchDesks();
-setInterval(fetchDesks, 5000); // update positions every 5s
+async function getSchedule(desk_id) {
+    const resp = await fetch(`/api/desks/get_schedule`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk_id: desk_id }) });
+    const data = await resp.json();
+    console.log(data);
+    return data;
+}
+
+async function updateSchedule() {
+    const { schedule } = await getSchedule("all");
+
+    const container = document.getElementById("schedule");
+    container.innerHTML = `<h2>Desk Schedule</h2><table>
+            <thead>
+                <tr>
+                    <th>Desk Name (ID)</th>
+                    <th>Hour:Minute</th>
+                    <th>Height</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>`;
+    const tbody = container.querySelector("tbody");
+    schedule.forEach(s => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${s.desk_id}</td>
+            <td>${(s.hour).toString().padStart(2, "0")}:${(s.minute).toString().padStart(2, "0")}</td>
+            <td>${s.height}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+async function updatePage() {
+    fetchDesks();
+    updateSchedule();
+
+}
+
+updatePage();
+setInterval(updatePage, 5000); // update page every 5s
