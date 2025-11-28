@@ -1,10 +1,107 @@
 /* Clean, modern, beginner-friendly table styling */
+
+
 body {
     background: #f7f7fa;
     color: #222;
     font-family: 'Segoe UI', Arial, sans-serif;
     margin: 0;
     padding: 0;
+}
+
+.auth-bg {
+    background: #fefefe !important;
+    color: #f3f3f3 !important;
+    min-height: 100vh;
+}
+
+.auth-bg {
+    background: #151515;
+    min-height: 100vh;
+}
+
+.auth-container {
+    background: #68696b;
+    margin: 60px auto 0 auto;
+    padding: 36px 40px 32px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.45);
+    max-width: 350px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-title {
+    color: #fff;
+    font-size: 2em;
+    margin-bottom: 28px;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 8px #000a;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.auth-input {
+    padding: 12px 14px;
+    border-radius: 6px;
+    border: none;
+    background: #23242a;
+    color: #f3f3f3;
+    font-size: 1em;
+    margin-bottom: 0;
+    outline: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.auth-input:focus {
+    background: #23243a;
+    box-shadow: 0 0 0 2px #5e81ff;
+}
+
+.auth-btn {
+    background: #5e81ff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    box-shadow: 0 2px 8px rgba(30, 92, 255, 0.10);
+    transition: background 0.2s, color 0.2s;
+}
+
+.auth-btn:hover {
+    background: #4661c5;
+}
+
+.auth-link {
+    color: #bbb;
+    text-align: center;
+    margin-top: 8px;
+    font-size: 1em;
+}
+
+.auth-link a {
+    color: #5e81ff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.auth-link a:hover {
+    color: #aabfff;
 }
 
 h1 {
@@ -95,20 +192,21 @@ button .icon {
 }
 
 .btn-step {
-    background: #e6f1ff;   /* very light blue */
-    color: #1e5cb3; 
+    background: #e6f1ff;
+    /* very light blue */
+    color: #1e5cb3;
 }
 
 .btn-step:hover {
     background: #c9e0ff;
 }
 
-.btn-selected{
+.btn-selected {
     border: 1px solid #1e5cb3;
 }
 
-input[type="number"]{
-    width:40px;
+input[type="number"] {
+    width: 40px;
     padding: 10px 14px;
     font-size: 1em;
     border-radius: 6px;
@@ -120,11 +218,11 @@ input[type="number"]{
     transition: border 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-input[type="number"]:hover{
+input[type="number"]:hover {
     background: #f7f7ff;
 }
 
-input[type="number"]:focus{
+input[type="number"]:focus {
     border-color: #1e5cb3;
     box-shadow: 0 0 0 3px rgba(30, 92, 179, 0.2);
     outline: none;
