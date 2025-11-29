@@ -5,7 +5,7 @@ body {
     background: #f7f7fa;
     color: #222;
     font-family: 'Segoe UI', Arial, sans-serif;
-    margin: 0;
+    margin: 40px;
     padding: 0;
 }
 
@@ -104,7 +104,8 @@ body {
     color: #aabfff;
 }
 
-h1 {
+h1,
+h2 {
     text-align: center;
     margin-top: 30px;
     color: #333;
@@ -112,8 +113,9 @@ h1 {
 
 table {
     border-collapse: collapse;
-    width: 90%;
-    margin: 40px auto;
+    /* width: 90%; */
+    /* margin: 40px auto; */
+    width: 100%;
     background: #fff;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);
     border-radius: 12px;
@@ -202,11 +204,12 @@ button .icon {
 }
 
 .btn-selected {
+.btn-selected {
     border: 1px solid #1e5cb3;
 }
 
 input[type="number"] {
-    width: 40px;
+    width: 60px;
     padding: 10px 14px;
     font-size: 1em;
     border-radius: 6px;
@@ -219,9 +222,11 @@ input[type="number"] {
 }
 
 input[type="number"]:hover {
+input[type="number"]:hover {
     background: #f7f7ff;
 }
 
+input[type="number"]:focus {
 input[type="number"]:focus {
     border-color: #1e5cb3;
     box-shadow: 0 0 0 3px rgba(30, 92, 179, 0.2);

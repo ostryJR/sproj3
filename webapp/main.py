@@ -127,7 +127,9 @@ def list_desks(request: Request):
         desks.append({
             "id": desk_id,
             "name": desk_data.get("config", {}).get("name", desk_id),
-            "position": desk_data.get("state", {}).get("position_mm", 0)
+            "position": desk_data.get("state", {}).get("position_mm", 0),
+            "usage": desk_data.get("usage", {}),
+            "lastErrors": desk_data.get("lastErrors", {})
         })
     return JSONResponse(desks)
 
@@ -173,9 +175,52 @@ async def schedule_move(desk_id: str, request: Request):
     hour = int(data.get("hour", 12))
     minute = int(data.get("minute", 0))
 
-    def job():
-        requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
+    def job(height):
+        requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": height})
     
     job_id = f"{desk_id}_{hour}_{minute}"
-    scheduler.add_job(job, 'cron', hour=hour, minute=minute, id=job_id, replace_existing=True)
+    scheduler.add_job(job, 'cron', hour=hour, minute=minute, id=job_id, replace_existing=True, args=[target])
     return {"scheduled": True, "desk_id": desk_id, "height": target, "time": f"{hour:02d}:{minute:02d}"}
+
+
+@app.post("/api/desks/get_schedule")
+async def get_schedule(request: Request):
+    data = await request.json()
+    desk_id = data.get("desk_id")
+    
+    jobs = []
+    if desk_id == "all":
+        jobs = scheduler.get_jobs()
+    else:
+        # Filter manually if needed or use scheduler's get_jobs with jobstore alias if configured, 
+        # but here we can just filter the list since we don't have jobstores set up with aliases matching desk_ids easily without more config.
+        # Actually scheduler.get_jobs() returns all jobs. We can filter by ID.
+        all_jobs = scheduler.get_jobs()
+        jobs = [j for j in all_jobs if j.id.startswith(f"{desk_id}_")]
+
+    schedule_data = []
+    for job in jobs:
+        # job.id format: "{desk_id}_{hour}_{minute}"
+        try:
+            parts = job.id.split('_')
+            # Handle potential desk_ids with underscores? 
+            # The current creation logic is: job_id = f"{desk_id}_{hour}_{minute}"
+            # So the last two parts are hour and minute.
+            d_id = "_".join(parts[:-2])
+            hour = parts[-2]
+            minute = parts[-1]
+            height = job.args[0]
+            
+            schedule_data.append({
+                "job_id": job.id,
+                "desk_id": d_id,
+                "hour": int(hour),
+                "minute": int(minute),
+                "next_run_time": str(job.next_run_time),
+                "height": str(height)
+            })
+        except Exception as e:
+            print(f"Error parsing job {job.id}: {e}")
+            continue
+
+    return {"schedule": schedule_data}
