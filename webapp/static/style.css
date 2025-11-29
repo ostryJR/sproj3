@@ -204,7 +204,6 @@ button .icon {
 }
 
 .btn-selected {
-.btn-selected {
     border: 1px solid #1e5cb3;
 }
 
@@ -222,11 +221,9 @@ input[type="number"] {
 }
 
 input[type="number"]:hover {
-input[type="number"]:hover {
     background: #f7f7ff;
 }
 
-input[type="number"]:focus {
 input[type="number"]:focus {
     border-color: #1e5cb3;
     box-shadow: 0 0 0 3px rgba(30, 92, 179, 0.2);
