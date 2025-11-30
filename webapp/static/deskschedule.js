@@ -2,8 +2,16 @@ async function schedule(id) {
     const h = document.getElementById(`hour_${id}`).value;
     const m = document.getElementById(`minute_${id}`).value;
     const val = document.getElementById(`sched_height_${id}`).value;
-    await fetch(`/api/desks/${id}/schedule`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hour: h, minute: m, height: val }) });
-    alert("Scheduled!");
+    const resp = await fetch(`/api/desks/${id}/schedule`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hour: h, minute: m, height: val }) });
+    if (!resp.ok) {
+        const text = await resp.text();
+        console.warn(`Schedule failed: ${resp.status} ${text}`);
+        return;
+    }
+    console.log("Scheduled!");
+    if (typeof updatePage === 'function') {
+        await updatePage();
+    }
 }
 
 async function getSchedule(desk_id) {

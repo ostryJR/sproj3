@@ -1,4 +1,7 @@
 
+// Suppress all alert dialogs on this site
+window.alert = function () { /* no-op */ };
+
 // Lock Height Feature
 window.lockIntervals = window.lockIntervals || {};
 
