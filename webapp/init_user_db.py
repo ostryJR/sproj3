@@ -1,6 +1,9 @@
 # User database setup for login system
 import sqlite3
 
+
+from passlib.hash import pbkdf2_sha256
+
 def init_db():
     conn = sqlite3.connect('webapp/users.db')
     c = conn.cursor()
@@ -11,6 +14,43 @@ def init_db():
             password_hash TEXT NOT NULL
         )
     ''')
+
+    # Try to add columns if they don't exist
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN desk_id TEXT')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+
+    # Load desk IDs from desks_state.json
+    import json
+    with open('data/desks_state.json', 'r') as f:
+        desks_data = json.load(f)
+    desk_ids = [k for k in desks_data.keys() if ':' in k]
+
+    # Create one user per desk
+    users = []
+    for i, desk_id in enumerate(desk_ids, 1):
+        users.append({
+            "username": f"user{i}",
+            "password": f"pass{i}",
+            "desk_id": desk_id,
+            "is_admin": 0
+        })
+    # Add admin account
+    users.append({"username": "admin", "password": "adminpass", "desk_id": None, "is_admin": 1})
+
+    for user in users:
+        try:
+            c.execute(
+                "INSERT INTO users (username, password_hash, desk_id, is_admin) VALUES (?, ?, ?, ?)",
+                (user["username"], pbkdf2_sha256.hash(user["password"]), user["desk_id"], user["is_admin"])
+            )
+        except sqlite3.IntegrityError:
+            pass  # User already exists
     conn.commit()
     conn.close()
 

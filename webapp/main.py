@@ -63,27 +63,7 @@ def index(request: Request):
     with open(template_path, "r") as f:
         return HTMLResponse(f.read())
 
-# Registration page
-@app.get("/register", response_class=HTMLResponse)
-def register_page():
-    template_path = os.path.join(BASE_DIR, 'templates', 'register.html')
-    with open(template_path, "r") as f:
-        return HTMLResponse(f.read())
 
-# Registration logic
-@app.post("/register")
-def register(request: Request, username: str = Form(...), password: str = Form(...)):
-    conn = get_db()
-    c = conn.cursor()
-    try:
-        c.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, pbkdf2_sha256.hash(password)))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        conn.close()
-        return HTMLResponse("Username already exists. <a href='/register'>Try again</a>.", status_code=400)
-    conn.close()
-    response = RedirectResponse("/login", status_code=302)
-    return response
 
 # Login page
 @app.get("/login", response_class=HTMLResponse)
@@ -101,7 +81,12 @@ def login(request: Request, response: Response, username: str = Form(...), passw
     user = c.fetchone()
     conn.close()
     if user and pbkdf2_sha256.verify(password, user["password_hash"]):
-        request.session["user"] = username
+        # Store user info in session
+        request.session["user"] = {
+            "username": user["username"],
+            "desk_id": user["desk_id"],
+            "is_admin": user["is_admin"]
+        }
         return RedirectResponse("/", status_code=302)
     return HTMLResponse("Invalid credentials. <a href='/login'>Try again</a>.", status_code=400)
 
@@ -114,16 +99,21 @@ def logout(request: Request):
 # List all desks
 @app.get("/api/desks")
 def list_desks(request: Request):
-    if not request.session.get("user"):
+    user = request.session.get("user")
+    if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
     # Get list of desk IDs
     resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks")
     desk_ids = resp.json()
     desks = []
-    for desk_id in desk_ids:
+    # If admin, show all desks; else, only user's desk
+    if user["is_admin"]:
+        allowed_desks = desk_ids
+    else:
+        allowed_desks = [user["desk_id"]] if user["desk_id"] in desk_ids else []
+    for desk_id in allowed_desks:
         desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
         desk_data = desk_resp.json()
-        # Flatten for frontend: id, name, position_mm
         desks.append({
             "id": desk_id,
             "name": desk_data.get("config", {}).get("name", desk_id),
