@@ -10,16 +10,22 @@
     <script src="/static/charts.js"></script>
     <script src="/static/deskcontrol.js"></script>
     <script src="/static/deskschedule.js"></script>
+    <script src="https://kit.fontawesome.com/56dbcf3753.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 auto;">        
+        <div style="">
+            <div id="clock" style="background: #1e5cb3; color: #fff; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-weight: bold;float:left;"></div>
+            <div style="background: #1e5cb3; color: #fff; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-weight: bold;float:left; margin-left:10px;" onclick="location.reload();"><i class="fa-solid fa-arrow-rotate-right"></i></div>
+        </div>
         <h1 style="margin: 20px 0;">Desk Controller</h1>
         <a href="/logout"
             style="background: #888; color: #fff; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-left: 20px;">Logout</a>
+
     </div>
-    <div id="clock" style="font-size:1.2em;margin-bottom:10px;text-align:center;"></div>
+    <!--<div id="clock" style="font-size:1.2em;margin-bottom:10px;text-align:center;"></div>-->
     <div id="desks"></div>
     <div id="stats" style="float:left; width:60%; margin-right:5%; padding:2.5%; padding-top:0;">
         <h2 style="margin-bottom: 40px;">Statistics</h2>

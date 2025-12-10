@@ -6,7 +6,7 @@ import json
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.middleware.cors import CORSMiddleware
-
+import func
 import sqlite3
 from passlib.hash import pbkdf2_sha256
 from starlette.middleware.sessions import SessionMiddleware
@@ -212,5 +212,10 @@ async def get_schedule(request: Request):
         except Exception as e:
             print(f"Error parsing job {job.id}: {e}")
             continue
-
+    # print(f'{scheduler.get_jobs()}')
     return {"schedule": schedule_data}
+
+
+#run scheduler so that the day schedule for desks is loaded at 00:00
+func.schedule()
+scheduler.add_job(func.schedule, 'cron', hour=0, minute=0)

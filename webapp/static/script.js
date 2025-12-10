@@ -6,7 +6,7 @@ function updateClock() {
     const now = new Date();
     const pad = n => n.toString().padStart(2, '0');
     const str = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    document.getElementById('clock').textContent = 'Current time: ' + str;
+    document.getElementById('clock').textContent = str;
 }
 
 async function getDeskData() {
