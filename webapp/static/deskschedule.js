@@ -35,7 +35,12 @@ async function updateSchedule(desks) {
         </table>`;
     const tbody = container.querySelector("tbody");
     schedule.forEach(desk => {
-        const desk_name = desksdata.find(d => (d.id).split(":").join("") == (desk.desk_id).split("_")[0]).name;
+        desk_name = ""
+        if(desk.desk_id=='All'){
+            desk_name = "All"
+        }else{
+            desk_name = desksdata.find(d => (d.id).split(":").join("") == (desk.desk_id).split("_")[0]).name;
+        }
         const row = document.createElement("tr");
         row.innerHTML = `
             <td><b>${desk_name}</b> (${desk.desk_id})</td>

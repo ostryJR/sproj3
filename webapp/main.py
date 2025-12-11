@@ -36,6 +36,9 @@ app = FastAPI(title="Desk Controller Web App")
 scheduler = BackgroundScheduler()
 scheduler.start()
 
+schedulerForDailySchedule = BackgroundScheduler()
+schedulerForDailySchedule.start()
+
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, 'static')), name="static")
 app.add_middleware(
     CORSMiddleware,
@@ -168,7 +171,7 @@ async def schedule_move(desk_id: str, request: Request):
     def job(height):
         requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": height})
     
-    job_id = f"{desk_id}_{hour}_{minute}"
+    job_id = f"{desk_id.replace(":","")}_{hour}_{minute}"
     scheduler.add_job(job, 'cron', hour=hour, minute=minute, id=job_id, replace_existing=True, args=[target])
     return {"scheduled": True, "desk_id": desk_id, "height": target, "time": f"{hour:02d}:{minute:02d}"}
 
@@ -186,7 +189,11 @@ async def get_schedule(request: Request):
         # but here we can just filter the list since we don't have jobstores set up with aliases matching desk_ids easily without more config.
         # Actually scheduler.get_jobs() returns all jobs. We can filter by ID.
         all_jobs = scheduler.get_jobs()
+        everydayJobs = schedulerForDailySchedule.get_jobs()
         jobs = [j for j in all_jobs if j.id.startswith(f"{desk_id}_")]
+        for j in everydayJobs:
+            if j.id.startswith(f"{desk_id}_"):
+                jobs.append(j)
 
     schedule_data = []
     for job in jobs:
@@ -212,10 +219,30 @@ async def get_schedule(request: Request):
         except Exception as e:
             print(f"Error parsing job {job.id}: {e}")
             continue
+    
+    
+    
+    with open('scheduleconfig.json', 'r') as file:
+        times = json.load(file)
+    for time in times:
+        hour = int(time['time'].split(':')[0])
+        minute = int(time['time'].split(':')[1])
+        height = int(time['height'])
+        schedule_data.append({
+            "job_id": -1,#probably should be changed
+            "desk_id": "All",
+            "hour": int(hour),
+            "minute": int(minute),
+            "next_run_time": -1,#probably should be changed
+            "height": str(height)
+        })
+    
+    
+    
     # print(f'{scheduler.get_jobs()}')
     return {"schedule": schedule_data}
 
 
 #run scheduler so that the day schedule for desks is loaded at 00:00
 func.schedule()
-scheduler.add_job(func.schedule, 'cron', hour=0, minute=0)
+schedulerForDailySchedule.add_job(func.schedule, 'cron', hour=0, minute=0)

@@ -3,12 +3,12 @@ import main
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# scheduler = BackgroundScheduler()
-# scheduler.start()
-
 def schedule():
-    def job(height):
-        requests.put(f"{main.SIMULATOR_URL}/api/v2/{main.API_KEY}/desks/{desk_id}/state", json={"position_mm": height})
+    def job(height, desk_id):
+        res = requests.put(f"{main.SIMULATOR_URL}/api/v2/{main.API_KEY}/desks/{desk_id}/state", json={"position_mm": height})
+        # print(f'Job: {job_id} have been runned!')
+        # print(f"{main.SIMULATOR_URL}/api/v2/{main.API_KEY}/desks/{desk_id}/state")
+        # print(res.json())
     
 
     with open('scheduleconfig.json', 'r') as file:
@@ -24,5 +24,5 @@ def schedule():
 
         for desk_id in desks:
             job_id = f"{desk_id.replace(':', '')}_{hour}_{minute}"
-            main.scheduler.add_job(job, 'cron', hour=hour, minute=minute, id=job_id, replace_existing=True, args=[height])
+            main.schedulerForDailySchedule.add_job(job, 'cron', hour=hour, minute=minute, id=job_id, replace_existing=True, args=[height, desk_id])
             print(f"Scheduled job {job_id} for desk {desk_id} at {hour}:{minute} to height {height}")
