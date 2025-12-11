@@ -39,6 +39,15 @@
         </div>
     </div>
     <div id="schedule" style="float:right; width:30%;"></div>
+
+    <!-- Desk Popup -->
+    <div id="deskPopup" class="popup-overlay" onclick="closeDeskPopup()">
+        <div class="popup-content" onclick="event.stopPropagation()">
+            <button class="popup-close" onclick="closeDeskPopup()">✕</button>
+            <div id="popupDeskContent"></div>
+        </div>
+    </div>
+
     <!--USE CHARTS.JS link to the docs: https://www.chartjs.org/docs/latest/getting-started/ -->
     <script>
         updatePage();
