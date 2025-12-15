@@ -242,5 +242,5 @@ document.addEventListener('DOMContentLoaded', () => {
         const height = getCurrentDeskHeight();
         addLivePoint(height);
         lineChart.update('none');
-    }, 200);
+    }, 30000);
 });

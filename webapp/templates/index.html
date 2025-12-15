@@ -11,6 +11,8 @@
 
     <script src="/static/script.js"></script>
     <script src="/static/charts.js" defer></script>
+    <script src="/static/charts2.js" defer></script>
+    <script src="/static/charts3.js" defer></script>
     <script src="/static/deskcontrol.js"></script>
     <script src="/static/deskschedule.js"></script>
 </head>
@@ -34,10 +36,30 @@
             <canvas id="myChart2"
                 style="box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);border-radius: 12px;"></canvas>
         </div>
+
     </div>
     <div id="schedule" style="float:right; width:30%;"></div>
+    <div style="clear: both;"></div>
     <div class="line-chart-container">
         <canvas id="lineChart"></canvas>
+    </div>
+    <div class="chartCard">
+        <div class="chartBox">
+            <div class="container">
+                <div class="containerBody">
+                    <canvas id="myChart3"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="chartCard2">
+        <div class="chartBox2">
+            <div class="container2">
+                <div class="containerBody2">
+                    <canvas id="myChart4"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
     <!--USE CHARTS.JS link to the docs: https://www.chartjs.org/docs/latest/getting-started/ -->
     <script>
