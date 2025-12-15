@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Integer, Boolean, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from ..db import Base
+from db import Base
 
 class Desk(Base):
     __tablename__ = "desks"

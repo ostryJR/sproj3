@@ -6,9 +6,10 @@ from datetime import datetime
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from .db import SessionLocal
-from .crud.desk_crud import add_or_update_desk
+from db import SessionLocal
+from crud.desk_crud import add_or_update_desk
 
+import main
 
 def sync_desks_to_db():
     db = SessionLocal()

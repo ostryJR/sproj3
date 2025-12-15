@@ -1,6 +1,6 @@
 # webapp/crud/desk_crud.py
 from sqlalchemy.orm import Session
-from ..models.desk import Desk
+from models.desk import Desk
 
 def add_or_update_desk(db: Session, desk_id: str, desk_data: dict):
     """
