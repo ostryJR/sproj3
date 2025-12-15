@@ -78,14 +78,33 @@ def startup_event():
     scheduler.start()
     schedulerForDailySchedule.start()
 
-    # Run daily desk schedule loader at 00:00
-    func.schedule()
-    schedulerForDailySchedule.add_job(func.schedule, 'cron', hour=0, minute=0)
-    print("Schedulers started.")
-    # --- Add continuous desk sync ---
-    # This will fetch data from the API every 10 seconds and update the database
-    scheduler.add_job(sync_desks_to_db, 'interval', seconds=10, id="sync_desks_to_db", replace_existing=True)
-    print("Continuous desk sync started.")
+    # Pass the scheduler and API info to func.schedule
+    func.schedule(
+        scheduler=schedulerForDailySchedule,
+        simulator_url=SIMULATOR_URL,
+        api_key=API_KEY
+    )
+
+    # Schedule it daily at midnight
+    schedulerForDailySchedule.add_job(
+        func.schedule,
+        'cron',
+        hour=0,
+        minute=0,
+        args=[schedulerForDailySchedule, SIMULATOR_URL, API_KEY]
+    )
+
+    # Continuous desk sync every 10 seconds
+    scheduler.add_job(
+        sync_desks_to_db,
+        'interval',
+        seconds=10,
+        id="sync_desks_to_db",
+        replace_existing=True
+    )
+
+    print("Schedulers started and jobs scheduled.")
+
 
 # -----------------------
 # User / Login dependencies
