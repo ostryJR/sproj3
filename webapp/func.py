@@ -1,5 +1,7 @@
 import json
 import requests
+from pathlib import Path
+
 
 def schedule(scheduler, simulator_url, api_key):
     """
@@ -20,7 +22,10 @@ def schedule(scheduler, simulator_url, api_key):
         # print(res.json())
 
     # Load schedule config
-    with open('scheduleconfig.json', 'r') as file:
+    BASE_DIR = Path(__file__).resolve().parent
+    config_path = BASE_DIR / "scheduleconfig.json"
+
+    with open(config_path, "r") as file:
         times = json.load(file)
 
     # Get all desk IDs from simulator

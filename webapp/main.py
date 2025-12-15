@@ -10,11 +10,11 @@ import sqlite3
 from passlib.hash import pbkdf2_sha256
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import inspect
-import func
-from db import engine
-from setup_db import initialize_db
+from . import func
+from .db import engine
+from .setup_db import initialize_db
 # Import the sync function
-from sync_desks_continuous import sync_desks_to_db
+from .sync_desks_continuous import sync_desks_to_db
 from apscheduler.schedulers.background import BackgroundScheduler
 # -----------------------
 # Database setup for SQLite
