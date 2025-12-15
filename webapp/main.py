@@ -11,6 +11,9 @@ import sqlite3
 from passlib.hash import pbkdf2_sha256
 from starlette.middleware.sessions import SessionMiddleware
 
+from webapp.init_user_db import init_db
+init_db()
+
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
 
 def get_db():
@@ -33,7 +36,23 @@ def load_api_key():
 API_KEY = load_api_key()
 
 app = FastAPI(title="Desk Controller Web App")
+
 scheduler = BackgroundScheduler()
+def set_all_desks_to_1320():
+    from datetime import datetime
+    now = datetime.now()
+    # Only run between 16:00 and 08:00
+    if now.hour >= 16 or now.hour < 8:
+        try:
+            resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks")
+            desk_ids = resp.json()
+            for desk_id in desk_ids:
+                requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": 1320})
+        except Exception as e:
+            print(f"Error setting all desks to 1320: {e}")
+
+# Run every 10 minutes (can be changed as needed)
+scheduler.add_job(set_all_desks_to_1320, 'interval', minutes=10, id='auto_set_all_1320', replace_existing=True)
 scheduler.start()
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, 'static')), name="static")

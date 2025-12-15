@@ -14,25 +14,81 @@
 
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto;">
-        <h1 style="margin: 20px 0;">Desk Controller</h1>
-        <a href="/logout"
-            style="background: #888; color: #fff; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-left: 20px;">Logout</a>
-    </div>
-    <div id="clock" style="font-size:1.2em;margin-bottom:10px;text-align:center;"></div>
-    <div id="desks"></div>
-    <div id="stats" style="float:left; width:60%; margin-right:5%; padding:2.5%; padding-top:0;">
-        <h2 style="margin-bottom: 40px;">Statistics</h2>
-        <div style="width:45%;float:left;margin:2.5%">
-            <canvas id="myChart"
-                style="box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);border-radius: 12px;"></canvas>
+    <header class="main-header">
+        <div class="header-content">
+            <h1>Desk Controller</h1>
+            <a href="/logout" class="logout-btn">Logout</a>
         </div>
-        <div style="width:45%;float:left;margin:2.5%">
-            <canvas id="myChart2"
-                style="box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);border-radius: 12px;"></canvas>
+        <div id="clock" class="clock"></div>
+    </header>
+    <div class="container">
+        <div class="all-desks-control">
+            <h2>Control All Desks</h2>
+            <div class="control-group">
+                <input type="number" id="height_all" placeholder="Height (mm)" step="10">
+                <button class="btn-primary" onclick="setHeightAll()">Set All</button>
+                <button id="lock_all" class="btn-secondary" onclick="toggleLockAll()">Lock All</button>
+            </div>
         </div>
     </div>
-    <div id="schedule" style="float:right; width:30%;"></div>
+    <div class="container">
+        <div id="desks" class="desks-grid"></div>
+        <template id="desk-card-template">
+            <div class="desk-card">
+                <div class="desk-header">
+                    <h3 class="desk-name"></h3>
+                    <span class="desk-id"></span>
+                </div>
+                <div class="desk-position">
+                    <div class="position-label">Current Height</div>
+                    <div class="position-value"><span class="pos"></span> mm</div>
+                </div>
+                <div class="desk-controls">
+                    <div class="control-group">
+                        <label class="control-label">Quick Controls</label>
+                        <div class="button-group">
+                            <button class="btn-up">Up</button>
+                            <button class="btn-down">Down</button>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Set Height</label>
+                        <div class="input-group">
+                            <input type="number" class="height-input" placeholder="mm">
+                            <button class="btn-step">Set</button>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Lock Position</label>
+                        <button class="btn-stop btn-full lock-btn">Lock Height</button>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Schedule</label>
+                        <div class="schedule-inputs">
+                            <input type="number" class="hour-input" placeholder="H">
+                            <input type="number" class="minute-input" placeholder="M">
+                            <input type="number" class="sched-height-input" placeholder="mm">
+                        </div>
+                        <button class="btn-step btn-full schedule-btn">Schedule</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+    <div class="container">
+        <div id="stats" class="stats-section">
+            <h2>Statistics</h2>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <canvas id="myChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <canvas id="myChart2"></canvas>
+                </div>
+            </div>
+        </div>
+        <div id="schedule" class="schedule-section"></div>
+    </div>
     <!--USE CHARTS.JS link to the docs: https://www.chartjs.org/docs/latest/getting-started/ -->
     <script>
         updatePage();

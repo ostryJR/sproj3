@@ -1,6 +1,8 @@
 
+
 // Lock Height Feature
 window.lockIntervals = window.lockIntervals || {};
+window.lockAllInterval = null;
 
 function updateClock() {
     const now = new Date();
@@ -17,70 +19,44 @@ async function getDeskData() {
 }
 
 async function fetchDesks(desks) {
-    // const desks = await getDeskData();
     const container = document.getElementById("desks");
-
-    let table = container.querySelector("table");
-    if (!table) {
-        container.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Desk Name (ID)</th>
-                    <th>Position</th>
-                    <th>Controls</th>
-                    <th>Set Height</th>
-                    <th>Lock</th>
-                    <th>Schedule</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>`;
-        table = container.querySelector("table");
-    }
-
-    const tbody = table.querySelector("tbody");
-
-    // Keep track of current desk IDs to remove stale rows if necessary (optional, but good practice)
     const currentDeskIds = new Set(desks.map(d => d.id));
 
     desks.forEach(d => {
-        let row = document.getElementById(`desk_row_${d.id}`);
-        if (!row) {
-            row = document.createElement("tr");
-            row.id = `desk_row_${d.id}`;
-            row.innerHTML = `
-                <td><b>${d.name}</b> (ID: ${d.id})</td>
-                <td><span id="pos_${d.id}">${d.position}</span> mm</td>
-                <td>
-                    <button class="btn-up" onclick="move('${d.id}', 'up')">Up</button>
-                    <button class="btn-down" onclick="move('${d.id}', 'down')">Down</button>
-                </td>
-                <td>
-                    <input type="number" id="height_${d.id}" placeholder="mm">
-                    <button class="btn-step" onclick="setHeight('${d.id}')">Set</button>
-                </td>
-                <td>
-                    <button id="lock_${d.id}" class="btn-stop" onclick="toggleLock('${d.id}')">Lock Height</button>
-                </td>
-                <td>
-                    <input type="number" id="hour_${d.id}" placeholder="H">
-                    <input type="number" id="minute_${d.id}" placeholder="M">
-                    <input type="number" id="sched_height_${d.id}" placeholder="mm">
-                    <button class="btn-step" onclick="schedule('${d.id}')">Schedule</button>
-                </td>
-            `;
-            tbody.appendChild(row);
+        let card = document.getElementById(`desk_card_${d.id}`);
+        if (!card) {
+            const template = document.getElementById('desk-card-template');
+            card = template.content.firstElementChild.cloneNode(true);
+            card.id = `desk_card_${d.id}`;
+            card.querySelector('.desk-name').textContent = d.name;
+            card.querySelector('.desk-id').textContent = `ID: ${d.id}`;
+            card.querySelector('.pos').textContent = d.position;
+
+            // Button handlers
+            card.querySelector('.btn-up').onclick = () => move(d.id, 'up');
+            card.querySelector('.btn-down').onclick = () => move(d.id, 'down');
+            card.querySelector('.btn-step').onclick = () => setHeight(d.id);
+            card.querySelector('.lock-btn').onclick = () => toggleLock(d.id);
+            card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
+
+            // Inputs
+            card.querySelector('.height-input').id = `height_${d.id}`;
+            card.querySelector('.hour-input').id = `hour_${d.id}`;
+            card.querySelector('.minute-input').id = `minute_${d.id}`;
+            card.querySelector('.sched-height-input').id = `sched_height_${d.id}`;
+            card.querySelector('.lock-btn').id = `lock_${d.id}`;
+
+            container.appendChild(card);
         } else {
             // Update dynamic values
-            const posSpan = document.getElementById(`pos_${d.id}`);
+            const posSpan = card.querySelector('.pos');
             if (posSpan) posSpan.textContent = d.position;
         }
 
-        // Update lock button state based on client-side state
-        const lockBtn = document.getElementById(`lock_${d.id}`);
+        // Update lock button state
+        const lockBtn = card.querySelector('.lock-btn');
         if (lockBtn) {
-            if (window.lockIntervals && window.lockIntervals[d.id]) {
+            if ((window.lockIntervals && window.lockIntervals[d.id]) || window.lockAllInterval) {
                 lockBtn.textContent = "Unlock";
             } else {
                 lockBtn.textContent = "Lock Height";
@@ -88,12 +64,12 @@ async function fetchDesks(desks) {
         }
     });
 
-    // Remove rows for desks that no longer exist
-    const rows = tbody.querySelectorAll("tr");
-    rows.forEach(row => {
-        const id = row.id.replace("desk_row_", "");
+    // Remove cards for desks that no longer exist
+    const cards = container.querySelectorAll(".desk-card");
+    cards.forEach(card => {
+        const id = card.id.replace("desk_card_", "");
         if (!currentDeskIds.has(id)) {
-            row.remove();
+            card.remove();
         }
     });
     getSchedule("all");
@@ -105,3 +81,70 @@ async function updatePage() {
     updateSchedule(desks);
     updateCharts(desks);
 }
+
+// Control all desks at once
+async function setHeightAll() {
+    const val = document.getElementById('height_all').value;
+    if (!val || isNaN(val)) {
+        alert("Please enter a valid height.");
+        return;
+    }
+    const desks = await getDeskData();
+    for (const desk of desks) {
+        await setHeight(desk.id);
+    }
+    document.getElementById('height_all').value = val;
+}
+
+function toggleLockAll() {
+    const btn = document.getElementById('lock_all');
+    const val = document.getElementById('height_all').value;
+    
+    if (window.lockAllInterval) {
+        clearInterval(window.lockAllInterval);
+        window.lockAllInterval = null;
+        btn.textContent = "Lock All";
+        console.log('Lock released for all desks');
+    } else {
+        if (!val) {
+            alert("Enter a height to lock.");
+            return;
+        }
+        window.lockAllInterval = setInterval(async () => {
+            const desks = await getDeskData();
+            for (const desk of desks) {
+                try {
+                    await fetch(`/api/desks/${desk.id}/set`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ height: val })
+                    });
+                } catch (e) {
+                    console.error(`Lock Height failed for desk ${desk.id}:`, e);
+                }
+            }
+        }, 1000);
+        btn.textContent = "Unlock All";
+        console.log(`Lock engaged for all desks at height ${val}`);
+    }
+}
+
+// Premade schedule: Between 16:00 and 08:00, set all desks to 1320mm (once per day)
+let desksSetTo1320 = false;
+setInterval(async () => {
+    const now = new Date();
+    const hour = now.getHours();
+    if ((hour >= 16 || hour < 8) && !desksSetTo1320) {
+        const desks = await getDeskData();
+        for (const desk of desks) {
+            await fetch(`/api/desks/${desk.id}/set`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ height: 1320 })
+            });
+        }
+        desksSetTo1320 = true;
+    } else if (hour >= 8 && hour < 16) {
+        desksSetTo1320 = false;
+    }
+}, 60000);
