@@ -5,9 +5,12 @@
     <meta charset="UTF-8">
     <title>Desk Controller</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+
     <script src="/static/script.js"></script>
-    <script src="/static/charts.js"></script>
+    <script src="/static/charts.js" defer></script>
     <script src="/static/deskcontrol.js"></script>
     <script src="/static/deskschedule.js"></script>
 </head>
@@ -33,6 +36,9 @@
         </div>
     </div>
     <div id="schedule" style="float:right; width:30%;"></div>
+    <div class="line-chart-container">
+        <canvas id="lineChart"></canvas>
+    </div>
     <!--USE CHARTS.JS link to the docs: https://www.chartjs.org/docs/latest/getting-started/ -->
     <script>
         updatePage();
