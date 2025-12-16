@@ -19,6 +19,10 @@ async function getDeskData() {
 }
 
 async function fetchDesks(desks) {
+    // to avoid system error fetchDesks expects a desks array but setHeight() calls it with no args
+    if (!desks) {
+        desks = await getDeskData();
+    }
     const container = document.getElementById("desks");
     const currentDeskIds = new Set(desks.map(d => d.id));
 
