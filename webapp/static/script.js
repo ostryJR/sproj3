@@ -4,41 +4,11 @@
 window.lockIntervals = window.lockIntervals || {};
 window.lockAllInterval = null;
 
-// Popup Functions
-function openDeskPopup(deskId) {
-    const popup = document.getElementById('deskPopup');
-    const popupContent = document.getElementById('popupDeskContent');
-
-    const desk = desks.find(d => d.id == deskId);
-    console.log(desk);
-    var deskName = desk["name"];
-    // Set popup content
-    popupContent.innerHTML = `
-        <h2 class="popup-header">Desk Details: ${deskName} (ID: ${deskId})</h2>
-        <div style="margin-top: 30px;">
-            <!--<p style="font-size: 1.2em; margin-bottom: 15px;">Desk ID: <strong>${deskId}</strong></p>
-            <p style="font-size: 1.2em; margin-bottom: 15px;">Desk Name: <strong>${deskName}</strong></p>
-            <p style="color: #666;">Add more desk details here...</p>-->
-            <p style="font-size: 1.2em; margin-bottom: 15px;">Sit Stand Counter: <strong>${desk["usage"]["sitStandCounter"]}</strong></p>
-            <p style="font-size: 1.2em; margin-bottom: 15px;">Activations Counter: <strong>${desk["usage"]["activationsCounter"]}</strong></p>
-            <canvas id="myChart3"
-                style="box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);border-radius: 12px;"></canvas>
-        </div>
-    `;
-    updateCharts();
-    popup.classList.add('active');
-}
-
-function closeDeskPopup() {
-    const popup = document.getElementById('deskPopup');
-    popup.classList.remove('active');
-}
-
 function updateClock() {
     const now = new Date();
     const pad = n => n.toString().padStart(2, '0');
     const str = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    document.getElementById('clock').textContent = str;
+    document.getElementById('clock').textContent = 'Current time: ' + str;
 }
 
 async function getDeskData() {
@@ -92,35 +62,14 @@ async function fetchDesks(desks) {
             card.querySelector('.lock-btn').onclick = () => toggleLock(d.id);
             card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
 
-    desks.forEach(d => {
-        let row = document.getElementById(`desk_row_${d.id}`);
-        if (!row) {
-            row = document.createElement("tr");
-            row.id = `desk_row_${d.id}`;
-            row.setAttribute("onclick", "openDeskPopup('"+(d.id)+"');");
-            row.setAttribute("style","cursor: pointer;");
-            row.innerHTML = `
-                <td><b>${d.name}</b> (ID: ${d.id})</td>
-                <td><span id="pos_${d.id}">${d.position}</span> mm</td>
-                <td>
-                    <button class="btn-up" onclick="move('${d.id}', 'up')">Up</button>
-                    <button class="btn-down" onclick="move('${d.id}', 'down')">Down</button>
-                </td>
-                <td>
-                    <input type="number" id="height_${d.id}" placeholder="mm">
-                    <button class="btn-step" onclick="setHeight('${d.id}')">Set</button>
-                </td>
-                <td>
-                    <button id="lock_${d.id}" class="btn-stop" onclick="toggleLock('${d.id}')">Lock Height</button>
-                </td>
-                <td>
-                    <input type="number" id="hour_${d.id}" placeholder="H">
-                    <input type="number" id="minute_${d.id}" placeholder="M">
-                    <input type="number" id="sched_height_${d.id}" placeholder="mm">
-                    <button class="btn-step" onclick="schedule('${d.id}')">Schedule</button>
-                </td>
-            `;
-            tbody.appendChild(row);
+            // Inputs
+            card.querySelector('.height-input').id = `height_${d.id}`;
+            card.querySelector('.hour-input').id = `hour_${d.id}`;
+            card.querySelector('.minute-input').id = `minute_${d.id}`;
+            card.querySelector('.sched-height-input').id = `sched_height_${d.id}`;
+            card.querySelector('.lock-btn').id = `lock_${d.id}`;
+
+            container.appendChild(card);
         } else {
             // Update dynamic values
             const posSpan = card.querySelector('.pos');
@@ -173,7 +122,7 @@ async function fetchDesks(desks) {
 }
 
 async function updatePage() {
-    desks = await getDeskData();
+    const desks = await getDeskData();
     fetchDesks(desks);
     updateSchedule(desks);
     updateCharts(desks);
