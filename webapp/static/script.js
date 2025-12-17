@@ -92,6 +92,10 @@ async function fetchDesks(desks) {
             card.querySelector('.lock-btn').onclick = () => toggleLock(d.id);
             card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
 
+            container.appendChild(card);
+        }
+    });
+
     desks.forEach(d => {
         let row = document.getElementById(`desk_row_${d.id}`);
         if (!row) {

@@ -6,7 +6,7 @@ import json
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.middleware.cors import CORSMiddleware
-import func
+from webapp import func
 import sqlite3
 from passlib.hash import pbkdf2_sha256
 from starlette.middleware.sessions import SessionMiddleware
@@ -254,7 +254,9 @@ async def get_schedule(request: Request):
     
     
     
-    with open('scheduleconfig.json', 'r') as file:
+    import os
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scheduleconfig.json')
+    with open(config_path, 'r') as file:
         times = json.load(file)
     for time in times:
         hour = int(time['time'].split(':')[0])
