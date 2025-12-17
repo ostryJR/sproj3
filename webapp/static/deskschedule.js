@@ -50,3 +50,80 @@ async function updateSchedule(desks) {
         tbody.appendChild(row);
     });
 }
+
+// --- Auto lock/unlock after/before schedule ---
+window.scheduleLockTimeouts = window.scheduleLockTimeouts || {};
+window.scheduleUnlockTimeouts = window.scheduleUnlockTimeouts || {};
+
+async function setupAutoLockUnlockForDesk(deskId) {
+    // Clear any previous timeouts
+    if (window.scheduleLockTimeouts[deskId]) {
+        clearTimeout(window.scheduleLockTimeouts[deskId]);
+    }
+    if (window.scheduleUnlockTimeouts[deskId]) {
+        clearTimeout(window.scheduleUnlockTimeouts[deskId]);
+    }
+    // Get all schedules for this desk
+    const { schedule } = await getSchedule(deskId);
+    if (!schedule || schedule.length === 0) return;
+    // Sort by next_run_time
+    const now = new Date();
+    const futureSchedules = schedule
+        .map(s => ({...s, next: new Date(s.next_run_time)}))
+        .filter(s => s.next > now)
+        .sort((a, b) => a.next - b.next);
+    if (futureSchedules.length === 0) return;
+    // Next scheduled move
+    const next = futureSchedules[0];
+    // Time until next schedule
+    const msUntilNext = next.next - now;
+    // Auto-unlock 10s before next schedule
+    if (msUntilNext > 10000) {
+        window.scheduleUnlockTimeouts[deskId] = setTimeout(() => {
+            if (window.lockIntervals[deskId]) {
+                clearInterval(window.lockIntervals[deskId]);
+                delete window.lockIntervals[deskId];
+                const btn = document.getElementById(`lock_${deskId}`);
+                if (btn) btn.textContent = "🔒 Lock Height";
+                console.log(`Auto-unlocked desk ${deskId} before next schedule`);
+            }
+        }, msUntilNext - 10000);
+    }
+    // Auto-lock right after scheduled move (1s after)
+    window.scheduleLockTimeouts[deskId] = setTimeout(() => {
+        // Get scheduled height
+        const schedHeight = next.height;
+        if (!window.lockIntervals[deskId]) {
+            window.lockIntervals[deskId] = setInterval(async () => {
+                try {
+                    await fetch(`/api/desks/${deskId}/set`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ height: schedHeight })
+                    });
+                } catch (e) {
+                    console.error(`Lock Height failed for desk ${deskId}:`, e);
+                }
+            }, 1000);
+            const btn = document.getElementById(`lock_${deskId}`);
+            if (btn) btn.textContent = "🔓 Unlock";
+            console.log(`Auto-locked desk ${deskId} after schedule`);
+        }
+        // Setup for next schedule recursively
+        setupAutoLockUnlockForDesk(deskId);
+    }, msUntilNext + 1000);
+}
+
+// Patch schedule() to also setup auto lock/unlock
+const origSchedule = schedule;
+schedule = async function(id) {
+    await origSchedule(id);
+    setupAutoLockUnlockForDesk(id);
+}
+// Also call setupAutoLockUnlockForDesk for all desks on page load
+window.addEventListener('DOMContentLoaded', async () => {
+    const desks = await getDeskData();
+    for (const desk of desks) {
+        setupAutoLockUnlockForDesk(desk.id);
+    }
+});

@@ -1,6 +1,8 @@
 
+
 // Lock Height Feature
 window.lockIntervals = window.lockIntervals || {};
+window.lockAllInterval = null;
 
 // Popup Functions
 function openDeskPopup(deskId) {
@@ -47,32 +49,48 @@ async function getDeskData() {
 }
 
 async function fetchDesks(desks) {
-    // const desks = await getDeskData();
-    const container = document.getElementById("desks");
-
-    let table = container.querySelector("table");
-    if (!table) {
-        container.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Desk Name (ID)</th>
-                    <th>Position</th>
-                    <th>Controls</th>
-                    <th>Set Height</th>
-                    <th>Lock</th>
-                    <th>Schedule</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>`;
-        table = container.querySelector("table");
+    // to avoid system error fetchDesks expects a desks array but setHeight() calls it with no args
+    if (!desks) {
+        desks = await getDeskData();
     }
-
-    const tbody = table.querySelector("tbody");
-
-    // Keep track of current desk IDs to remove stale rows if necessary (optional, but good practice)
+    const container = document.getElementById("desks");
     const currentDeskIds = new Set(desks.map(d => d.id));
+
+    desks.forEach(d => {
+        let card = document.getElementById(`desk_card_${d.id}`);
+        if (!card) {
+            const template = document.getElementById('desk-card-template');
+            card = template.content.firstElementChild.cloneNode(true);
+            card.id = `desk_card_${d.id}`;
+            card.querySelector('.desk-name').textContent = d.name;
+            card.querySelector('.desk-id').textContent = `ID: ${d.id}`;
+            card.querySelector('.pos').textContent = d.position;
+
+            // Error/status display (initial)
+            const errorDivInit = card.querySelector('.desk-error');
+            if (errorDivInit) {
+                const hasStatus = d.status && d.status !== 'Normal';
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.remove('no-error');
+                    errorDivInit.textContent = text;
+                } else {
+                    // Show No current error by default 
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.add('no-error');
+                    errorDivInit.textContent = 'No current error';
+                }
+            }
+
+            // Button handlers
+            card.querySelector('.btn-up').onclick = () => move(d.id, 'up');
+            card.querySelector('.btn-down').onclick = () => move(d.id, 'down');
+            card.querySelector('.btn-step').onclick = () => setHeight(d.id);
+            card.querySelector('.lock-btn').onclick = () => toggleLock(d.id);
+            card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
 
     desks.forEach(d => {
         let row = document.getElementById(`desk_row_${d.id}`);
@@ -105,14 +123,35 @@ async function fetchDesks(desks) {
             tbody.appendChild(row);
         } else {
             // Update dynamic values
-            const posSpan = document.getElementById(`pos_${d.id}`);
+            const posSpan = card.querySelector('.pos');
             if (posSpan) posSpan.textContent = d.position;
+
+            // Update error/status display
+            const errorDiv = card.querySelector('.desk-error');
+            const hasStatus = d.status && d.status !== 'Normal';
+            const hasErrors = Array.isArray(d.lastErrors) && d.lastErrors.length > 0;
+            if (errorDiv) {
+                // current errors (status != Normal) Otherwise  'No current error'
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.remove('no-error');
+                    errorDiv.textContent = text;
+                } else {
+                    // No active hindering error
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('no-error');
+                    errorDiv.textContent = 'No current error';
+                }
+            }
         }
 
-        // Update lock button state based on client-side state
-        const lockBtn = document.getElementById(`lock_${d.id}`);
+        // Update lock button state
+        const lockBtn = card.querySelector('.lock-btn');
         if (lockBtn) {
-            if (window.lockIntervals && window.lockIntervals[d.id]) {
+            if ((window.lockIntervals && window.lockIntervals[d.id]) || window.lockAllInterval) {
                 lockBtn.textContent = "Unlock";
             } else {
                 lockBtn.textContent = "Lock Height";
@@ -120,14 +159,16 @@ async function fetchDesks(desks) {
         }
     });
 
-    // Remove rows for desks that no longer exist
-    const rows = tbody.querySelectorAll("tr");
-    rows.forEach(row => {
-        const id = row.id.replace("desk_row_", "");
+    // Remove cards for desks that no longer exist
+    const cards = container.querySelectorAll(".desk-card");
+    cards.forEach(card => {
+        const id = card.id.replace("desk_card_", "");
         if (!currentDeskIds.has(id)) {
-            row.remove();
+            card.remove();
         }
     });
+    // Process popups for any new or resolved errors
+    try { processPopups(desks); } catch (e) { console.error('Popup processing failed', e); }
     getSchedule("all");
 }
 
@@ -138,4 +179,124 @@ async function updatePage() {
     updateCharts(desks);
 }
 
-var desks = [];
+// Control all desks at once
+async function setHeightAll() {
+    const val = document.getElementById('height_all').value;
+    if (!val || isNaN(val)) {
+        alert("Please enter a valid height.");
+        return;
+    }
+    const desks = await getDeskData();
+    await Promise.all(desks.map(desk => setHeight(desk.id, val)));
+    document.getElementById('height_all').value = val;
+}
+
+function toggleLockAll() {
+    const btn = document.getElementById('lock_all');
+    const val = document.getElementById('height_all').value;
+    
+    if (window.lockAllInterval) {
+        clearInterval(window.lockAllInterval);
+        window.lockAllInterval = null;
+        btn.textContent = "Lock All";
+        console.log('Lock released for all desks');
+    } else {
+        if (!val) {
+            alert("Enter a height to lock.");
+            return;
+        }
+        window.lockAllInterval = setInterval(async () => {
+            const desks = await getDeskData();
+            for (const desk of desks) {
+                try {
+                    await fetch(`/api/desks/${desk.id}/set`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ height: val })
+                    });
+                } catch (e) {
+                    console.error(`Lock Height failed for desk ${desk.id}:`, e);
+                }
+            }
+        }, 1000);
+        btn.textContent = "Unlock All";
+        console.log(`Lock engaged for all desks at height ${val}`);
+    }
+}
+
+// Premade schedule: Between 16:00 and 08:00, set all desks to 1320mm (once per day)
+let desksSetTo1320 = false;
+setInterval(async () => {
+    const now = new Date();
+    const hour = now.getHours();
+    if ((hour >= 16 || hour < 8) && !desksSetTo1320) {
+        const desks = await getDeskData();
+        for (const desk of desks) {
+            await fetch(`/api/desks/${desk.id}/set`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ height: 1320 })
+            });
+        }
+        desksSetTo1320 = true;
+    } else if (hour >= 8 && hour < 16) {
+        desksSetTo1320 = false;
+    }
+}, 60000);
+
+/* System popup helpers */
+function showPopup(d) {
+    if (!d || !d.id) return;
+    const container = document.getElementById('system-popups');
+    if (!container) return;
+    const id = `popup_${d.id}`;
+    if (document.getElementById(id)) return;
+    const el = document.createElement('div');
+    el.id = id;
+    el.className = 'system-popup';
+    const msg = document.createElement('div');
+    msg.className = 'msg';
+    const code = d.currentError && d.currentError.errorCode ? ` - Error ${d.currentError.errorCode}` : '';
+    msg.textContent = `${d.name}${code}`;
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = () => resolvePopup(d.id);
+    el.appendChild(msg);
+    el.appendChild(closeBtn);
+    container.appendChild(el);
+}
+
+function resolvePopup(deskId) {
+    const el = document.getElementById(`popup_${deskId}`);
+    if (!el) return;
+    el.classList.add('resolved');
+    const msg = el.querySelector('.msg');
+    if (msg && !/resolved/i.test(msg.textContent)) msg.textContent = `${msg.textContent} (resolved)`;
+    // fade out after 3s and remove
+    setTimeout(() => {
+        if (!el) return;
+        el.classList.add('fadeout');
+        setTimeout(() => { el.remove(); }, 600);
+    }, 3000);
+}
+
+function processPopups(desks) {
+    window._prevDeskStatus = window._prevDeskStatus || {};
+    // On first run, initialize states but don't show popups for existing errors
+    if (!window._popupsInitialized) {
+        desks.forEach(d => { window._prevDeskStatus[d.id] = d.status || 'Normal'; });
+        window._popupsInitialized = true;
+        return;
+    }
+    desks.forEach(d => {
+        const prev = window._prevDeskStatus[d.id] || 'Normal';
+        const curr = d.status || 'Normal';
+        if (prev === 'Normal' && curr !== 'Normal') {
+            showPopup(d);
+        } else if (prev !== 'Normal' && curr === 'Normal') {
+            resolvePopup(d.id);
+        }
+        window._prevDeskStatus[d.id] = curr;
+    });
+}
