@@ -10,10 +10,10 @@
     <script src="/static/charts.js"></script>
     <script src="/static/deskcontrol.js"></script>
     <script src="/static/deskschedule.js"></script>
-    <script src="https://kit.fontawesome.com/56dbcf3753.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
+
     <header class="main-header">
         <div class="header-content">
             <h1>Desk Controller</h1>
@@ -90,13 +90,6 @@
         </div>
         <div id="schedule" class="schedule-section"></div>
         <div id="system-popups" class="system-popups" aria-live="polite" aria-atomic="true"></div>
-    </div>
-    <!-- Desk Popup -->
-    <div id="deskPopup" class="popup-overlay" onclick="closeDeskPopup()">
-        <div class="popup-content" onclick="event.stopPropagation()">
-            <button class="popup-close" onclick="closeDeskPopup()">✕</button>
-            <div id="popupDeskContent"></div>
-        </div>
     </div>
     <!--USE CHARTS.JS link to the docs: https://www.chartjs.org/docs/latest/getting-started/ -->
     <script>

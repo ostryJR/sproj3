@@ -16,9 +16,9 @@ async function getSchedule(desk_id) {
 async function updateSchedule(desks) {
     console.log("Updating schedule...");
     const { schedule } = await getSchedule("all");
-    const desksdata = await getDeskData();
-    console.log(desksdata);
+    // const desks = await getDeskData();
     console.log(schedule);
+
 
     const container = document.getElementById("schedule");
     container.innerHTML = `
@@ -34,18 +34,13 @@ async function updateSchedule(desks) {
             <tbody></tbody>
         </table>`;
     const tbody = container.querySelector("tbody");
-    schedule.forEach(desk => {
-        desk_name = ""
-        if(desk.desk_id=='All'){
-            desk_name = "All"
-        }else{
-            desk_name = desksdata.find(d => (d.id).split(":").join("") == (desk.desk_id).split("_")[0]).name;
-        }
+    schedule.forEach(s => {
+        const desk = desks.find(d => d.id == s.desk_id);
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td><b>${desk_name}</b> (${desk.desk_id})</td>
-            <td>${(desk.hour).toString().padStart(2, "0")}:${(desk.minute).toString().padStart(2, "0")}</td>
-            <td>${desk.height}</td>
+            <td><b>${desk.name}</b> (${desk.id})</td>
+            <td>${(s.hour).toString().padStart(2, "0")}:${(s.minute).toString().padStart(2, "0")}</td>
+            <td>${s.height}</td>
         `;
         tbody.appendChild(row);
     });
