@@ -15,7 +15,7 @@
 
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 auto;">        
+    <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 auto;">
         <div style="">
             <div id="clock" style="background: #1e5cb3; color: #fff; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-weight: bold;float:left;"></div>
             <div style="background: #1e5cb3; color: #fff; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-weight: bold;float:left; margin-left:10px;" onclick="location.reload();"><i class="fa-solid fa-arrow-rotate-right"></i></div>
@@ -39,6 +39,15 @@
         </div>
     </div>
     <div id="schedule" style="float:right; width:30%;"></div>
+
+    <!-- Desk Popup -->
+    <div id="deskPopup" class="popup-overlay" onclick="closeDeskPopup()">
+        <div class="popup-content" onclick="event.stopPropagation()">
+            <button class="popup-close" onclick="closeDeskPopup()">✕</button>
+            <div id="popupDeskContent"></div>
+        </div>
+    </div>
+
     <!--USE CHARTS.JS link to the docs: https://www.chartjs.org/docs/latest/getting-started/ -->
     <script>
         updatePage();

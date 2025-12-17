@@ -1,5 +1,5 @@
 import json
-import main
+from webapp import main
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -11,7 +11,9 @@ def schedule():
         # print(res.json())
     
 
-    with open('scheduleconfig.json', 'r') as file:
+    import os
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scheduleconfig.json')
+    with open(config_path, 'r') as file:
         times = json.load(file)
     
     desks = requests.get(f"{main.SIMULATOR_URL}/api/v2/{main.API_KEY}/desks").json()

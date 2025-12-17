@@ -6,10 +6,13 @@ import json
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.middleware.cors import CORSMiddleware
-import func
+from webapp import func
 import sqlite3
 from passlib.hash import pbkdf2_sha256
 from starlette.middleware.sessions import SessionMiddleware
+
+from webapp.init_user_db import init_db
+init_db()
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
 
@@ -33,7 +36,23 @@ def load_api_key():
 API_KEY = load_api_key()
 
 app = FastAPI(title="Desk Controller Web App")
+
 scheduler = BackgroundScheduler()
+def set_all_desks_to_1320():
+    from datetime import datetime
+    now = datetime.now()
+    # Only run between 16:00 and 08:00
+    if now.hour >= 16 or now.hour < 8:
+        try:
+            resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks")
+            desk_ids = resp.json()
+            for desk_id in desk_ids:
+                requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": 1320})
+        except Exception as e:
+            print(f"Error setting all desks to 1320: {e}")
+
+# Run every 10 minutes (can be changed as needed)
+scheduler.add_job(set_all_desks_to_1320, 'interval', minutes=10, id='auto_set_all_1320', replace_existing=True)
 scheduler.start()
 
 schedulerForDailySchedule = BackgroundScheduler()
@@ -117,12 +136,25 @@ def list_desks(request: Request):
     for desk_id in allowed_desks:
         desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
         desk_data = desk_resp.json()
+        status = desk_data.get("state", {}).get("status", "Normal")
+        last_errors = desk_data.get("lastErrors", []) or []
+
+        # include the error code 
+        current_error = None
+        if status != "Normal" and len(last_errors) > 0:
+            latest = last_errors[0]
+            current_error = {
+                "errorCode": latest.get("errorCode")
+            }
+
         desks.append({
             "id": desk_id,
             "name": desk_data.get("config", {}).get("name", desk_id),
             "position": desk_data.get("state", {}).get("position_mm", 0),
+            "status": status,
             "usage": desk_data.get("usage", {}),
-            "lastErrors": desk_data.get("lastErrors", {})
+            "lastErrors": [ {"errorCode": e.get("errorCode")} for e in last_errors ],
+            "currentError": current_error
         })
     return JSONResponse(desks)
 
@@ -222,7 +254,9 @@ async def get_schedule(request: Request):
     
     
     
-    with open('scheduleconfig.json', 'r') as file:
+    import os
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scheduleconfig.json')
+    with open(config_path, 'r') as file:
         times = json.load(file)
     for time in times:
         hour = int(time['time'].split(':')[0])
