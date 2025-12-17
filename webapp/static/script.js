@@ -3,12 +3,43 @@
 // Lock Height Feature
 window.lockIntervals = window.lockIntervals || {};
 window.lockAllInterval = null;
+var desks = [];
+
+// Popup Functions
+function openDeskPopup(deskId) {
+    const popup = document.getElementById('deskPopup');
+    const popupContent = document.getElementById('popupDeskContent');
+
+    const desk = desks.find(d => d.id == deskId);
+    console.log(desk);
+    var deskName = desk["name"];
+    // Set popup content
+    popupContent.innerHTML = `
+        <h2 class="popup-header">Desk Details: ${deskName} (ID: ${deskId})</h2>
+        <div style="margin-top: 30px;">
+            <!--<p style="font-size: 1.2em; margin-bottom: 15px;">Desk ID: <strong>${deskId}</strong></p>
+            <p style="font-size: 1.2em; margin-bottom: 15px;">Desk Name: <strong>${deskName}</strong></p>
+            <p style="color: #666;">Add more desk details here...</p>-->
+            <p style="font-size: 1.2em; margin-bottom: 15px;">Sit Stand Counter: <strong>${desk["usage"]["sitStandCounter"]}</strong></p>
+            <p style="font-size: 1.2em; margin-bottom: 15px;">Activations Counter: <strong>${desk["usage"]["activationsCounter"]}</strong></p>
+            <canvas id="myChart3"
+                style="box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);border-radius: 12px;"></canvas>
+        </div>
+    `;
+    updateCharts();
+    popup.classList.add('active');
+}
+
+function closeDeskPopup() {
+    const popup = document.getElementById('deskPopup');
+    popup.classList.remove('active');
+}
 
 function updateClock() {
     const now = new Date();
     const pad = n => n.toString().padStart(2, '0');
     const str = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    document.getElementById('clock').textContent = 'Current time: ' + str;
+    document.getElementById('clock').textContent = str;
 }
 
 async function getDeskData() {
@@ -36,7 +67,6 @@ async function fetchDesks(desks) {
             card.querySelector('.desk-id').textContent = `ID: ${d.id}`;
             card.querySelector('.pos').textContent = d.position;
 
-            // Error/status display (initial)
             const errorDivInit = card.querySelector('.desk-error');
             if (errorDivInit) {
                 const hasStatus = d.status && d.status !== 'Normal';
@@ -48,7 +78,6 @@ async function fetchDesks(desks) {
                     errorDivInit.classList.remove('no-error');
                     errorDivInit.textContent = text;
                 } else {
-                    // Show No current error by default 
                     errorDivInit.style.display = 'block';
                     errorDivInit.classList.add('no-error');
                     errorDivInit.textContent = 'No current error';
@@ -122,7 +151,7 @@ async function fetchDesks(desks) {
 }
 
 async function updatePage() {
-    const desks = await getDeskData();
+    desks = await getDeskData();
     fetchDesks(desks);
     updateSchedule(desks);
     updateCharts(desks);

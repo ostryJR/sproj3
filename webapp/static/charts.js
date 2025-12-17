@@ -49,4 +49,25 @@ async function updateCharts() {
             }
         }
     });
+    const ctx3 = document.getElementById('myChart3');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [10, 20, 30]
+            }],
+            labels: [
+                'Red',
+                'Yellow',
+                'Blue'
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 }
