@@ -133,12 +133,25 @@ def list_desks(request: Request):
     for desk_id in allowed_desks:
         desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
         desk_data = desk_resp.json()
+        status = desk_data.get("state", {}).get("status", "Normal")
+        last_errors = desk_data.get("lastErrors", []) or []
+
+        # include the error code 
+        current_error = None
+        if status != "Normal" and len(last_errors) > 0:
+            latest = last_errors[0]
+            current_error = {
+                "errorCode": latest.get("errorCode")
+            }
+
         desks.append({
             "id": desk_id,
             "name": desk_data.get("config", {}).get("name", desk_id),
             "position": desk_data.get("state", {}).get("position_mm", 0),
+            "status": status,
             "usage": desk_data.get("usage", {}),
-            "lastErrors": desk_data.get("lastErrors", {})
+            "lastErrors": [ {"errorCode": e.get("errorCode")} for e in last_errors ],
+            "currentError": current_error
         })
     return JSONResponse(desks)
 

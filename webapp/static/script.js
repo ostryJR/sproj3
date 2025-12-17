@@ -36,6 +36,25 @@ async function fetchDesks(desks) {
             card.querySelector('.desk-id').textContent = `ID: ${d.id}`;
             card.querySelector('.pos').textContent = d.position;
 
+            // Error/status display (initial)
+            const errorDivInit = card.querySelector('.desk-error');
+            if (errorDivInit) {
+                const hasStatus = d.status && d.status !== 'Normal';
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.remove('no-error');
+                    errorDivInit.textContent = text;
+                } else {
+                    // Show No current error by default 
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.add('no-error');
+                    errorDivInit.textContent = 'No current error';
+                }
+            }
+
             // Button handlers
             card.querySelector('.btn-up').onclick = () => move(d.id, 'up');
             card.querySelector('.btn-down').onclick = () => move(d.id, 'down');
@@ -55,6 +74,27 @@ async function fetchDesks(desks) {
             // Update dynamic values
             const posSpan = card.querySelector('.pos');
             if (posSpan) posSpan.textContent = d.position;
+
+            // Update error/status display
+            const errorDiv = card.querySelector('.desk-error');
+            const hasStatus = d.status && d.status !== 'Normal';
+            const hasErrors = Array.isArray(d.lastErrors) && d.lastErrors.length > 0;
+            if (errorDiv) {
+                // current errors (status != Normal) Otherwise  'No current error'
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.remove('no-error');
+                    errorDiv.textContent = text;
+                } else {
+                    // No active hindering error
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('no-error');
+                    errorDiv.textContent = 'No current error';
+                }
+            }
         }
 
         // Update lock button state
@@ -76,6 +116,8 @@ async function fetchDesks(desks) {
             card.remove();
         }
     });
+    // Process popups for any new or resolved errors
+    try { processPopups(desks); } catch (e) { console.error('Popup processing failed', e); }
     getSchedule("all");
 }
 
@@ -152,3 +194,60 @@ setInterval(async () => {
         desksSetTo1320 = false;
     }
 }, 60000);
+
+/* System popup helpers */
+function showPopup(d) {
+    if (!d || !d.id) return;
+    const container = document.getElementById('system-popups');
+    if (!container) return;
+    const id = `popup_${d.id}`;
+    if (document.getElementById(id)) return;
+    const el = document.createElement('div');
+    el.id = id;
+    el.className = 'system-popup';
+    const msg = document.createElement('div');
+    msg.className = 'msg';
+    const code = d.currentError && d.currentError.errorCode ? ` - Error ${d.currentError.errorCode}` : '';
+    msg.textContent = `${d.name}${code}`;
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = () => resolvePopup(d.id);
+    el.appendChild(msg);
+    el.appendChild(closeBtn);
+    container.appendChild(el);
+}
+
+function resolvePopup(deskId) {
+    const el = document.getElementById(`popup_${deskId}`);
+    if (!el) return;
+    el.classList.add('resolved');
+    const msg = el.querySelector('.msg');
+    if (msg && !/resolved/i.test(msg.textContent)) msg.textContent = `${msg.textContent} (resolved)`;
+    // fade out after 3s and remove
+    setTimeout(() => {
+        if (!el) return;
+        el.classList.add('fadeout');
+        setTimeout(() => { el.remove(); }, 600);
+    }, 3000);
+}
+
+function processPopups(desks) {
+    window._prevDeskStatus = window._prevDeskStatus || {};
+    // On first run, initialize states but don't show popups for existing errors
+    if (!window._popupsInitialized) {
+        desks.forEach(d => { window._prevDeskStatus[d.id] = d.status || 'Normal'; });
+        window._popupsInitialized = true;
+        return;
+    }
+    desks.forEach(d => {
+        const prev = window._prevDeskStatus[d.id] || 'Normal';
+        const curr = d.status || 'Normal';
+        if (prev === 'Normal' && curr !== 'Normal') {
+            showPopup(d);
+        } else if (prev !== 'Normal' && curr === 'Normal') {
+            resolvePopup(d.id);
+        }
+        window._prevDeskStatus[d.id] = curr;
+    });
+}

@@ -215,7 +215,6 @@
             "items": {
               "type": "object",
               "properties": {
-                "time_s": { "type": "integer", "example": 120 },
                 "errorCode": { "type": "integer", "example": 93 }
               }
             }

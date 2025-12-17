@@ -234,6 +234,22 @@ h2 {
     border-bottom: 2px solid #f0f0f5;
 }
 
+.desk-error {
+    display: none;
+    margin: 12px 0;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #ff4d4f 0%, #e60000 100%);
+    color: white;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.desk-error.no-error {
+    background: linear-gradient(135deg, #f0f0f5 0%, #e6e6fa 100%);
+    color: #555;
+    font-weight: 600;
+}
+
 .desk-name {
     margin: 0;
     font-size: 1.4em;
@@ -485,3 +501,36 @@ input[type="number"]:focus {
         text-align: center;
     }
 }
+
+/* System popups */
+.system-popups {
+    position: fixed;
+    top: 84px;
+    right: 20px;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 360px;
+}
+.system-popup {
+    background: linear-gradient(135deg, #ff4d4f 0%, #e60000 100%);
+    color: white;
+    padding: 12px 14px;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.system-popup .msg { flex: 1; }
+.system-popup.resolved {
+    background: linear-gradient(135deg, #6fcf97, #2ecc71);
+    opacity: 0.95;
+    transition: opacity 0.4s, transform 0.4s;
+    transform-origin: right top;
+}
+.system-popup.fadeout { opacity: 0; transform: translateX(8px) scale(0.98); transition: opacity 0.6s, transform 0.6s; }
+.system-popup .close { background: transparent; border: none; color: inherit; cursor: pointer; font-weight: 700; font-size: 1.1em; padding: 6px; }
