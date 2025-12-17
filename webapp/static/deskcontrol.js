@@ -5,7 +5,12 @@ async function move(id, dir) {
 }
 
 async function setHeight(id) {
-    const val = document.getElementById(`height_${id}`).value;
+    let val;
+    if (arguments.length > 1 && arguments[1] !== undefined) {
+        val = arguments[1];
+    } else {
+        val = document.getElementById(`height_${id}`).value;
+    }
     if (!val || isNaN(val)) {
         alert("Please enter a valid height.");
         return;

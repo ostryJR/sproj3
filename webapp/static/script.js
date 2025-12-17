@@ -94,9 +94,7 @@ async function setHeightAll() {
         return;
     }
     const desks = await getDeskData();
-    for (const desk of desks) {
-        await setHeight(desk.id);
-    }
+    await Promise.all(desks.map(desk => setHeight(desk.id, val)));
     document.getElementById('height_all').value = val;
 }
 
