@@ -5,7 +5,10 @@ import sqlite3
 from passlib.hash import pbkdf2_sha256
 
 def init_db():
-    conn = sqlite3.connect('webapp/users.db')
+        
+    import os
+    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -27,16 +30,23 @@ def init_db():
 
     # Load desk IDs from desks_state.json
     import json
-    with open('data/desks_state.json', 'r') as f:
+    DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'desks_state.json')
+    with open(DATA_PATH, 'r') as f:
         desks_data = json.load(f)
     desk_ids = [k for k in desks_data.keys() if ':' in k]
 
-    # Create one user per desk
+    # Create two users per desk
     users = []
     for i, desk_id in enumerate(desk_ids, 1):
         users.append({
-            "username": f"user{i}",
-            "password": f"pass{i}",
+            "username": f"user{i}a",
+            "password": f"pass{i}a",
+            "desk_id": desk_id,
+            "is_admin": 0
+        })
+        users.append({
+            "username": f"user{i}b",
+            "password": f"pass{i}b",
             "desk_id": desk_id,
             "is_admin": 0
         })

@@ -1,0 +1,149 @@
+/* Layout: container, grid, header, responsive */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 30px 40px;
+}
+.main-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    padding: 20px 0;
+    margin-bottom: 30px;
+}
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.header-content h1 {
+    margin: 0;
+    color: #667eea;
+    font-size: 2em;
+    font-weight: 700;
+}
+.logout-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+.logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+.clock {
+    font-size: 1.2em;
+    text-align: center;
+    color: #555;
+    margin-top: 10px;
+    font-weight: 500;
+}
+/* All Desks Control */
+.all-desks-control {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    padding: 24px;
+    margin-bottom: 32px;
+}
+.all-desks-control h2 {
+    margin: 0 0 16px 0;
+    font-size: 1.5em;
+    color: #333;
+    font-weight: 700;
+}
+.all-desks-control .control-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+.all-desks-control input[type="number"] {
+    flex: 1;
+    max-width: 300px;
+}
+/* Desks Grid */
+.desks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+/* Stats and Schedule */
+.stats-section {
+    margin-top: 40px;
+}
+.stats-section h2 {
+    color: white;
+    margin-bottom: 30px;
+    font-size: 1.8em;
+}
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 24px;
+}
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.schedule-section {
+    margin-top: 40px;
+}
+.schedule-section table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    margin: 0 auto 32px auto;
+    overflow: hidden;
+    margin-top: 24px;
+}
+.schedule-section th, .schedule-section td {
+    padding: 14px 18px;
+    text-align: left;
+}
+.schedule-section th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: 600;
+    border-bottom: 2px solid #f0f0f5;
+}
+.schedule-section tr:nth-child(even) {
+    background: #f8f8fc;
+}
+.schedule-section tr:nth-child(odd) {
+    background: #fff;
+}
+.schedule-section td {
+    color: #333;
+    font-size: 1em;
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+    .desks-grid {
+        grid-template-columns: 1fr;
+    }
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    .header-content {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+}

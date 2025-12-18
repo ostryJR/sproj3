@@ -1,36 +1,17 @@
+// Simple lock andunlock helpers
+function lockDesk(id) { window.lockIntervals[id] = true; }
+function unlockDesk(id) { delete window.lockIntervals[id]; }
+
+async function lockedAction(id, action) {
+    lockDesk(id);
+    unlockDesk(id);
+    await action();
+    lockDesk(id);
+}
 
 // Lock Height Feature
 window.lockIntervals = window.lockIntervals || {};
 
-// Popup Functions
-function openDeskPopup(deskId) {
-    const popup = document.getElementById('deskPopup');
-    const popupContent = document.getElementById('popupDeskContent');
-
-    const desk = desks.find(d => d.id == deskId);
-    console.log(desk);
-    var deskName = desk["name"];
-    // Set popup content
-    popupContent.innerHTML = `
-        <h2 class="popup-header">Desk Details: ${deskName} (ID: ${deskId})</h2>
-        <div style="margin-top: 30px;">
-            <!--<p style="font-size: 1.2em; margin-bottom: 15px;">Desk ID: <strong>${deskId}</strong></p>
-            <p style="font-size: 1.2em; margin-bottom: 15px;">Desk Name: <strong>${deskName}</strong></p>
-            <p style="color: #666;">Add more desk details here...</p>-->
-            <p style="font-size: 1.2em; margin-bottom: 15px;">Sit Stand Counter: <strong>${desk["usage"]["sitStandCounter"]}</strong></p>
-            <p style="font-size: 1.2em; margin-bottom: 15px;">Activations Counter: <strong>${desk["usage"]["activationsCounter"]}</strong></p>
-            <canvas id="myChart3"
-                style="box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1.5px 4px rgba(0, 0, 0, 0.06);border-radius: 12px;"></canvas>
-        </div>
-    `;
-    updateCharts();
-    popup.classList.add('active');
-}
-
-function closeDeskPopup() {
-    const popup = document.getElementById('deskPopup');
-    popup.classList.remove('active');
-}
 
 function updateClock() {
     const now = new Date();
@@ -47,72 +28,111 @@ async function getDeskData() {
 }
 
 async function fetchDesks(desks) {
-    // const desks = await getDeskData();
-    const container = document.getElementById("desks");
-
-    let table = container.querySelector("table");
-    if (!table) {
-        container.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Desk Name (ID)</th>
-                    <th>Position</th>
-                    <th>Controls</th>
-                    <th>Set Height</th>
-                    <th>Lock</th>
-                    <th>Schedule</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>`;
-        table = container.querySelector("table");
+    // to avoid system error fetchDesks expects a desks array but setHeight() calls it with no args
+    if (!desks) {
+        desks = await getDeskData();
     }
-
-    const tbody = table.querySelector("tbody");
-
-    // Keep track of current desk IDs to remove stale rows if necessary (optional, but good practice)
+    const container = document.getElementById("desks");
     const currentDeskIds = new Set(desks.map(d => d.id));
 
     desks.forEach(d => {
-        let row = document.getElementById(`desk_row_${d.id}`);
-        if (!row) {
-            row = document.createElement("tr");
-            row.id = `desk_row_${d.id}`;
-            row.setAttribute("onclick", "openDeskPopup('"+(d.id)+"');");
-            row.setAttribute("style","cursor: pointer;");
-            row.innerHTML = `
-                <td><b>${d.name}</b> (ID: ${d.id})</td>
-                <td><span id="pos_${d.id}">${d.position}</span> mm</td>
-                <td>
-                    <button class="btn-up" onclick="move('${d.id}', 'up')">Up</button>
-                    <button class="btn-down" onclick="move('${d.id}', 'down')">Down</button>
-                </td>
-                <td>
-                    <input type="number" id="height_${d.id}" placeholder="mm">
-                    <button class="btn-step" onclick="setHeight('${d.id}')">Set</button>
-                </td>
-                <td>
-                    <button id="lock_${d.id}" class="btn-stop" onclick="toggleLock('${d.id}')">Lock Height</button>
-                </td>
-                <td>
-                    <input type="number" id="hour_${d.id}" placeholder="H">
-                    <input type="number" id="minute_${d.id}" placeholder="M">
-                    <input type="number" id="sched_height_${d.id}" placeholder="mm">
-                    <button class="btn-step" onclick="schedule('${d.id}')">Schedule</button>
-                </td>
-            `;
-            tbody.appendChild(row);
+        let card = document.getElementById(`desk_card_${d.id}`);
+        if (!card) {
+            const template = document.getElementById('desk-card-template');
+            card = template.content.firstElementChild.cloneNode(true);
+            card.id = `desk_card_${d.id}`;
+            card.querySelector('.desk-name').textContent = d.name;
+            card.querySelector('.desk-id').textContent = `ID: ${d.id}`;
+            card.querySelector('.pos').textContent = d.position;
+
+            // Error/status display (initial)
+            const errorDivInit = card.querySelector('.desk-error');
+            if (errorDivInit) {
+                const hasStatus = d.status && d.status !== 'Normal';
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.remove('no-error');
+                    errorDivInit.textContent = text;
+                } else {
+                    // Show No current error by default 
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.add('no-error');
+                    errorDivInit.textContent = 'No current error';
+                }
+            }
+
+            // Button handlers
+            card.querySelector('.btn-up').onclick = () => lockedAction(d.id, () => move(d.id, 'up'));
+            card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => move(d.id, 'down'));
+            card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
+            card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
+            // Lock button is visible but non-functional for now
+            card.querySelector('.lock-btn').onclick = null;
+            card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
+
+            // Inputs
+            card.querySelector('.height-input').id = `height_${d.id}`;
+            card.querySelector('.hour-input').id = `hour_${d.id}`;
+            card.querySelector('.minute-input').id = `minute_${d.id}`;
+            card.querySelector('.sched-height-input').id = `sched_height_${d.id}`;
+            card.querySelector('.lock-btn').id = `lock_${d.id}`;
+
+            // Hide Lock and Schedule controls for non-admin users
+            if (!d.is_admin) {
+                const lockGroup = card.querySelector('.lock-btn')?.closest('.control-group');
+                if (lockGroup) lockGroup.style.display = 'none';
+                const schedGroup = card.querySelector('.schedule-btn')?.closest('.control-group');
+                if (schedGroup) schedGroup.style.display = 'none';
+            }
+
+            container.appendChild(card);
         } else {
             // Update dynamic values
-            const posSpan = document.getElementById(`pos_${d.id}`);
+            const posSpan = card.querySelector('.pos');
             if (posSpan) posSpan.textContent = d.position;
+
+            // Update error/status display
+            const errorDiv = card.querySelector('.desk-error');
+            const hasStatus = d.status && d.status !== 'Normal';
+            const hasErrors = Array.isArray(d.lastErrors) && d.lastErrors.length > 0;
+            if (errorDiv) {
+                // current errors (status != Normal) Otherwise  'No current error'
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.remove('no-error');
+                    errorDiv.textContent = text;
+                } else {
+                    // No active hindering error
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('no-error');
+                    errorDiv.textContent = 'No current error';
+                }
+            }
+
+            // Hide Lock and Schedule controls for non-admin users (update)
+            if (!d.is_admin) {
+                const lockGroup = card.querySelector('.lock-btn')?.closest('.control-group');
+                if (lockGroup) lockGroup.style.display = 'none';
+                const schedGroup = card.querySelector('.schedule-btn')?.closest('.control-group');
+                if (schedGroup) schedGroup.style.display = 'none';
+            } else {
+                const lockGroup = card.querySelector('.lock-btn')?.closest('.control-group');
+                if (lockGroup) lockGroup.style.display = '';
+                const schedGroup = card.querySelector('.schedule-btn')?.closest('.control-group');
+                if (schedGroup) schedGroup.style.display = '';
+            }
         }
 
-        // Update lock button state based on client-side state
-        const lockBtn = document.getElementById(`lock_${d.id}`);
+        // Update lock button state
+        const lockBtn = card.querySelector('.lock-btn');
         if (lockBtn) {
-            if (window.lockIntervals && window.lockIntervals[d.id]) {
+            if ((window.lockIntervals && window.lockIntervals[d.id]) || window.lockAllInterval) {
                 lockBtn.textContent = "Unlock";
             } else {
                 lockBtn.textContent = "Lock Height";
@@ -120,14 +140,16 @@ async function fetchDesks(desks) {
         }
     });
 
-    // Remove rows for desks that no longer exist
-    const rows = tbody.querySelectorAll("tr");
-    rows.forEach(row => {
-        const id = row.id.replace("desk_row_", "");
+    // Remove cards for desks that no longer exist
+    const cards = container.querySelectorAll(".desk-card");
+    cards.forEach(card => {
+        const id = card.id.replace("desk_card_", "");
         if (!currentDeskIds.has(id)) {
-            row.remove();
+            card.remove();
         }
     });
+    // Process popups for any new or resolved errors
+    try { processPopups(desks); } catch (e) { console.error('Popup processing failed', e); }
     getSchedule("all");
 }
 
@@ -139,3 +161,48 @@ async function updatePage() {
 }
 
 var desks = [];
+
+// Control all desks at once
+async function setHeightAll() {
+    const val = document.getElementById('height_all').value;
+    if (!val || isNaN(val)) {
+        alert("Please enter a valid height.");
+        return;
+    }
+    const desks = await getDeskData();
+    await Promise.all(desks.map(desk => setHeight(desk.id, val)));
+    document.getElementById('height_all').value = val;
+}
+
+function toggleLockAll() {
+    const btn = document.getElementById('lock_all');
+    const val = document.getElementById('height_all').value;
+    
+    if (window.lockAllInterval) {
+        clearInterval(window.lockAllInterval);
+        window.lockAllInterval = null;
+        btn.textContent = "Lock All";
+        console.log('Lock released for all desks');
+    } else {
+        if (!val) {
+            alert("Enter a height to lock.");
+            return;
+        }
+        window.lockAllInterval = setInterval(async () => {
+            const desks = await getDeskData();
+            for (const desk of desks) {
+                try {
+                    await fetch(`/api/desks/${desk.id}/set`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ height: val })
+                    });
+                } catch (e) {
+                    console.error(`Lock Height failed for desk ${desk.id}:`, e);
+                }
+            }
+        }, 1000);
+        btn.textContent = "Unlock All";
+        console.log(`Lock engaged for all desks at height ${val}`);
+    }
+}

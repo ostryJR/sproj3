@@ -13,8 +13,10 @@ from sqlalchemy import inspect
 import func
 from db import engine
 from setup_db import initialize_db
+from init_user_db import init_db
 # Import the sync function
 from sync_desks_continuous import sync_desks_to_db
+init_db()
 from apscheduler.schedulers.background import BackgroundScheduler
 # -----------------------
 # Database setup for SQLite
@@ -48,6 +50,7 @@ def load_api_key():
         return keys[0]
 
 API_KEY = load_api_key()
+
 
 # -----------------------
 # FastAPI app + Middleware
@@ -125,7 +128,7 @@ def index(request: Request):
     template_path = os.path.join(BASE_DIR, 'templates', 'index.html')
     with open(template_path, "r") as f:
         return HTMLResponse(f.read())
-
+    
 @app.get("/login", response_class=HTMLResponse)
 def login_page():
     template_path = os.path.join(BASE_DIR, 'templates', 'login.html')
@@ -171,12 +174,26 @@ def list_desks(request: Request):
     for desk_id in allowed_desks:
         desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
         desk_data = desk_resp.json()
+        status = desk_data.get("state", {}).get("status", "Normal")
+        last_errors = desk_data.get("lastErrors", []) or []
+
+        # include the error code 
+        current_error = None
+        if status != "Normal" and len(last_errors) > 0:
+            latest = last_errors[0]
+            current_error = {
+                "errorCode": latest.get("errorCode")
+            }
+
         desks.append({
             "id": desk_id,
             "name": desk_data.get("config", {}).get("name", desk_id),
             "position": desk_data.get("state", {}).get("position_mm", 0),
+            "status": status,
             "usage": desk_data.get("usage", {}),
-            "lastErrors": desk_data.get("lastErrors", {})
+            "lastErrors": [ {"errorCode": e.get("errorCode")} for e in last_errors ],
+            "currentError": current_error,
+            "is_admin": user["is_admin"]
         })
     return JSONResponse(desks)
 
@@ -225,6 +242,71 @@ async def schedule_move(desk_id: str, request: Request):
 # Get schedule endpoint remains unchanged
 @app.post("/api/desks/get_schedule")
 async def get_schedule(request: Request):
-    # Your existing logic here, unchanged
-    # ...
-    return {"schedule": []}  # Placeholder; copy your original logic here
+    data = await request.json()
+    desk_id = data.get("desk_id")
+    
+    jobs = []
+    if desk_id == "all":
+        jobs = scheduler.get_jobs()
+    else:
+        # Filter manually if needed or use scheduler's get_jobs with jobstore alias if configured, 
+        # but here we can just filter the list since we don't have jobstores set up with aliases matching desk_ids easily without more config.
+        # Actually scheduler.get_jobs() returns all jobs. We can filter by ID.
+        all_jobs = scheduler.get_jobs()
+        everydayJobs = schedulerForDailySchedule.get_jobs()
+        jobs = [j for j in all_jobs if j.id.startswith(f"{desk_id}_")]
+        for j in everydayJobs:
+            if j.id.startswith(f"{desk_id}_"):
+                jobs.append(j)
+
+    schedule_data = []
+    for job in jobs:
+        # job.id format: "{desk_id}_{hour}_{minute}"
+        try:
+            parts = job.id.split('_')
+            # Handle potential desk_ids with underscores? 
+            # The current creation logic is: job_id = f"{desk_id}_{hour}_{minute}"
+            # So the last two parts are hour and minute.
+            d_id = "_".join(parts[:-2])
+            hour = parts[-2]
+            minute = parts[-1]
+            height = job.args[0]
+            
+            schedule_data.append({
+                "job_id": job.id,
+                "desk_id": d_id,
+                "hour": int(hour),
+                "minute": int(minute),
+                "next_run_time": str(job.next_run_time),
+                "height": str(height)
+            })
+        except Exception as e:
+            print(f"Error parsing job {job.id}: {e}")
+            continue
+    
+    
+    
+    with open('scheduleconfig.json', 'r') as file:
+        times = json.load(file)
+    for time in times:
+        hour = int(time['time'].split(':')[0])
+        minute = int(time['time'].split(':')[1])
+        height = int(time['height'])
+        schedule_data.append({
+            "job_id": -1,#probably should be changed
+            "desk_id": "All",
+            "hour": int(hour),
+            "minute": int(minute),
+            "next_run_time": -1,#probably should be changed
+            "height": str(height)
+        })
+    
+    
+    
+    # print(f'{scheduler.get_jobs()}')
+    return {"schedule": schedule_data}
+
+
+#run scheduler so that the day schedule for desks is loaded at 00:00
+func.schedule(scheduler, SIMULATOR_URL, API_KEY)
+schedulerForDailySchedule.add_job(func.schedule, 'cron', hour=0, minute=0, args=[schedulerForDailySchedule, SIMULATOR_URL, API_KEY])
