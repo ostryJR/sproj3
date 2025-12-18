@@ -15,7 +15,7 @@ from db import engine
 from setup_db import initialize_db
 from init_user_db import init_db
 # Import the sync function
-from sync_desks_continuous import sync_desks_to_db
+from sync_desks_continuous import safe_sync_desks_to_db
 init_db()
 from apscheduler.schedulers.background import BackgroundScheduler
 # -----------------------
@@ -99,9 +99,9 @@ def startup_event():
 
     # Continuous desk sync every 10 seconds
     scheduler.add_job(
-        sync_desks_to_db,
+        safe_sync_desks_to_db,
         'interval',
-        seconds=10,
+        seconds=5,
         id="sync_desks_to_db",
         replace_existing=True
     )

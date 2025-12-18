@@ -1,10 +1,24 @@
 async function move(id, dir) {
+    if (window.lockIntervals[id] || window.lockAllInterval) {
+        alert("Desk input is locked!");
+        return;
+    }
+
     const step = 50;
-    await fetch(`/api/desks/${id}/${dir}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ step }) });
+    await fetch(`/api/desks/${id}/${dir}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step })
+    });
     await fetchDesks();
 }
 
 async function setHeight(id) {
+    if (window.lockIntervals[id] || window.lockAllInterval) {
+        alert("Desk input is locked!");
+        return;
+    }
+
     let val;
     if (arguments.length > 1 && arguments[1] !== undefined) {
         val = arguments[1];
@@ -18,7 +32,11 @@ async function setHeight(id) {
     console.log(`Setting desk ${id} to height: ${val}`);
     try {
         for (let i = 0; i < 5; i++) {
-            const resp = await fetch(`/api/desks/${id}/set`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ height: val }) });
+            const resp = await fetch(`/api/desks/${id}/set`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ height: val })
+            });
             if (!resp.ok) {
                 const text = await resp.text();
                 alert(`Error setting height: ${resp.status} ${text}`);
@@ -32,33 +50,30 @@ async function setHeight(id) {
     }
 }
 
+// -------------------------
+// Toggle Lock (UI only, no height required)
+// -------------------------
 function toggleLock(id) {
-    const btn = document.getElementById(`lock_${id}`);
-    if (window.lockIntervals[id]) {
-        clearInterval(window.lockIntervals[id]);
-        delete window.lockIntervals[id];
+    const card = document.getElementById(`desk_card_${id}`);
+    const btn = card.querySelector(".lock-btn");
+
+    if (!card || !btn) return;
+
+    if (card.classList.contains("locked")) {
+        // Unlock
+        card.classList.remove("locked");
+        card.querySelectorAll("button, input").forEach(el => el.disabled = false);
+        btn.disabled = false;
         btn.textContent = "Lock Height";
-        console.log(`Lock released for desk ${id}`);
+        showPopup(`Desk ${id} unlocked`);
     } else {
-        const val = document.getElementById(`height_${id}`).value;
-        if (!val) {
-            alert("Enter a height to lock.");
-            return;
-        }
-        window.lockIntervals[id] = setInterval(async () => {
-            try {
-                const resp = await fetch(`/api/desks/${id}/set`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ height: val }) });
-                if (!resp.ok) {
-                    const text = await resp.text();
-                    console.error(`Lock Height error for desk ${id}: ${resp.status} ${text}`);
-                } else {
-                    console.log(`Lock Height sent for desk ${id} to ${val}`);
-                }
-            } catch (e) {
-                console.error(`Lock Height failed for desk ${id}:`, e);
-            }
-        }, 1000);
+        // Lock desk UI only
+        card.classList.add("locked");
+        card.querySelectorAll("button, input").forEach(el => {
+            if (!el.classList.contains("lock-btn")) el.disabled = true;
+        });
+        btn.disabled = false;
         btn.textContent = "Unlock";
-        console.log(`Lock engaged for desk ${id} at height ${val}`);
+        showPopup(`Desk ${id} locked`);
     }
 }

@@ -11,17 +11,20 @@ from crud.desk_crud import add_or_update_desk
 
 import main
 
-def sync_desks_to_db():
+def sync_desks_to_db(*args, **kwargs):
     db = SessionLocal()
     try:
         desks = requests.get(
             f"{main.SIMULATOR_URL}/api/v2/{main.API_KEY}/desks"
+            
         ).json()
+        
 
         for desk_id in desks:
             desk_data = requests.get(
                 f"{main.SIMULATOR_URL}/api/v2/{main.API_KEY}/desks/{desk_id}"
             ).json()
+            
 
             # Update desk in database
             add_or_update_desk(
@@ -47,12 +50,18 @@ def sync_desks_to_db():
     finally:
         db.close()
 
+def safe_sync_desks_to_db():
+    try:
+        sync_desks_to_db()
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] "
+              f"Error in scheduled job: {e}")
 
 if __name__ == "__main__":
     scheduler = BackgroundScheduler()
 
     # Run the sync every 5 seconds (adjustable)
-    scheduler.add_job(sync_desks_to_db, "interval", seconds=5)
+    scheduler.add_job(safe_sync_desks_to_db(), "interval", seconds=5)
     scheduler.start()
 
     print(

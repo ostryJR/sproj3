@@ -1,26 +1,33 @@
-# webapp/crud/desk_crud.py
 from sqlalchemy.orm import Session
 from models.desk import Desk
 
 def add_or_update_desk(db: Session, desk_id: str, desk_data: dict):
     """
-    Inserts a new desk or updates an existing one in SQLite, excluding clock_s.
+    Inserts a new desk or updates an existing one in SQLite, safely.
     """
+    data = desk_data.get("desk_data", {})
+
+    config = data.get("config", {})
+    state = data.get("state", {})
+    usage = data.get("usage", {})
+    last_errors = data.get("lastErrors", [])
+
     desk = Desk(
         desk_id=desk_id,
-        name=desk_data["desk_data"]["config"]["name"],
-        manufacturer=desk_data["desk_data"]["config"]["manufacturer"],
-        position_mm=desk_data["desk_data"]["state"]["position_mm"],
-        speed_mms=desk_data["desk_data"]["state"]["speed_mms"],
-        status=desk_data["desk_data"]["state"]["status"],
-        isPositionLost=desk_data["desk_data"]["state"]["isPositionLost"],
-        isOverloadProtectionUp=desk_data["desk_data"]["state"]["isOverloadProtectionUp"],
-        isOverloadProtectionDown=desk_data["desk_data"]["state"]["isOverloadProtectionDown"],
-        isAntiCollision=desk_data["desk_data"]["state"]["isAntiCollision"],
-        activationsCounter=desk_data["desk_data"]["usage"]["activationsCounter"],
-        sitStandCounter=desk_data["desk_data"]["usage"]["sitStandCounter"],
-        last_errors=desk_data["desk_data"]["lastErrors"],  # store as JSON
-        user_status=desk_data.get("user", "inactive")     # default to inactive if missing
+        name=config.get("name", f"Desk {desk_id}"),
+        manufacturer=config.get("manufacturer", "Unknown"),
+        position_mm=state.get("position_mm", 0),
+        speed_mms=state.get("speed_mms", 0),
+        status=state.get("status", "Unknown"),
+        isPositionLost=state.get("isPositionLost", False),
+        isOverloadProtectionUp=state.get("isOverloadProtectionUp", False),
+        isOverloadProtectionDown=state.get("isOverloadProtectionDown", False),
+        isAntiCollision=state.get("isAntiCollision", False),
+        activationsCounter=usage.get("activationsCounter", 0),
+        sitStandCounter=usage.get("sitStandCounter", 0),
+        last_errors=last_errors,
+        user_status=desk_data.get("user", "inactive")
     )
-    db.merge(desk)  # merge works for SQLite: inserts or updates
+
+    db.merge(desk)
     db.commit()
