@@ -230,6 +230,10 @@ input[type="number"]:focus {
     outline: none;
 }
 
+
+
+
+/**
 .line-chart-container {
     width: 100%;
     height: 300px;
@@ -239,7 +243,7 @@ input[type="number"]:focus {
 .line-chart-container canvas {
     width: 100%;
     height: 100%;
-}
+}*/
 
 
 
@@ -321,4 +325,66 @@ input[type="number"]:focus {
 
 .containerBody2 {
     height: 300px;
+}
+
+
+/* merging */
+
+.chartCard3 {
+    width: 100%;
+    min-height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.chartBox3 {
+    width: 95vw;
+    max-width: 1400px;
+    height: 400px;
+    padding: 16px;
+    border-radius: 20px;
+    border: 3px solid rgba(54, 162, 235, 1);
+    background: white;
+    box-sizing: border-box;
+}
+
+.chartBox3 canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.container3 {
+    width: 100%;
+    /*max-width: 1000px;*/
+    overflow-x: scroll;
+}
+
+.containerBody3 {
+    height: 300px;
+    min-width: 100%;
+}
+
+
+
+/* line chart legend*/
+
+.fixedLegend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legendColor {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
 }

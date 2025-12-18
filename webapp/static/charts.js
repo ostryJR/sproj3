@@ -72,10 +72,8 @@ async function updateCharts() {
 
 }
 
-/***********************
-     * SLIDING WINDOW
-     ***********************/
-function trimOldPoints(seconds) {
+// hide older data on the chart, keep only those in the time window in seconds
+/*function trimOldPoints(seconds) {
     const cutoff = Date.now() - seconds * 1000;
 
     Object.values(datasetsState).forEach(arr => {
@@ -85,6 +83,8 @@ function trimOldPoints(seconds) {
     });
 }
 
+
+
 /***********************
 * STATE DEFINITIONS
 ***********************/
@@ -92,9 +92,6 @@ const STANDING = v => v > 100;
 const NEUTRAL = v => v <= 100 && v >= 85;
 const SITTING = v => v < 85;
 
-/***********************
- * GLOBAL CHART STATE
- ***********************/
 
 const datasetsState = {
     green: [],
@@ -103,9 +100,6 @@ const datasetsState = {
     transition: []
 };
 
-/***********************
- * ADD ONE LIVE POINT
- ***********************/
 function addLivePoint(height) {
     const now = Date.now();
 
@@ -141,7 +135,6 @@ function addLivePoint(height) {
         }
     }
 
-    //trimOldPoints(60); // keep last 60 seconds
 }
 
 /***********************
@@ -192,8 +185,11 @@ function initLineChart() {
                 point: { radius: 4 }
             },
             plugins: {
+                legend: {
+                    display: false
+                },
                 title: {
-                    display: true,
+                    display: false,
                     text: 'Desk Position Chart'
                 }
             },
@@ -207,8 +203,8 @@ function initLineChart() {
                         }
                     },
                     ticks: {
-                        autoSkip: true,
-                        maxTicksLimit: 10
+                        autoSkip: false,
+                        /*maxTicksLimit: 10*/
                     }
                 }
             }
@@ -217,20 +213,66 @@ function initLineChart() {
 }
 
 
-
-/***********************
-    * LIVE UPDATE LOOP
-    ***********************/
-
-// Replace this with your real API call
+//Replace this with real API call
 function getCurrentDeskHeight() {
     return 70 + Math.random() * 60;
 }
+
+
+
+/*const API_KEY = 'E9Y2LxT4g1hQZ7aD8nR3mWx5P0qK6pV7';
+const DESK_ID = 'cd:fb:1a:53:fb:e6';
+const BASE_URL = 'http://localhost:8000';
+
+async function getCurrentDeskHeight() {
+    const res = await fetch(
+        `${BASE_URL}/api/v2/${API_KEY}/desks/${DESK_ID}/state`
+    );
+
+    if (!res.ok) {
+        throw new Error('Failed to fetch desk state');
+    }
+
+    const state = await res.json();
+
+    // Convert mm → cm if your chart expects cm
+    return state.position_mm / 10;
+}*/
+
+
+
+
+
+function createLegend(chart) {
+    const legend = document.getElementById('lineLegend');
+    legend.innerHTML = '';
+
+    chart.data.datasets.forEach(ds => {
+        const item = document.createElement('div');
+        item.className = 'legendItem';
+
+        const color = document.createElement('span');
+        color.className = 'legendColor';
+        color.style.backgroundColor = ds.borderColor;
+
+        const label = document.createElement('span');
+        label.textContent = ds.label;
+
+        item.appendChild(color);
+        item.appendChild(label);
+        legend.appendChild(item);
+    });
+}
+
+
+
 
 // Start everything
 document.addEventListener('DOMContentLoaded', () => {
     updateCharts();
     initLineChart();
+
+    createLegend(lineChart);
 
     // add an initial point immediately
     addLivePoint(90);
@@ -241,6 +283,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
         const height = getCurrentDeskHeight();
         addLivePoint(height);
+
+        const containerBody3 = document.querySelector('.containerBody3')
+
+        const pointCount = datasetsState.green.length;
+
+        if (pointCount > 5) {
+            containerBody3.style.width = '5000px'
+        }
+
         lineChart.update('none');
-    }, 30000);
+
+    }, 3000);
+
+
+
+
 });
