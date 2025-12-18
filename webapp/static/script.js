@@ -35,6 +35,19 @@ async function fetchDesks(desks) {
     const container = document.getElementById("desks");
     const currentDeskIds = new Set(desks.map(d => d.id));
 
+    // Hide or show global controls based on admin status
+    const isAdmin = desks && desks.length ? desks.some(x => !!x.is_admin) : false;
+    const allControls = document.querySelector('.all-desks-control');
+    if (allControls) {
+        allControls.style.display = isAdmin ? '' : 'none';
+    }
+    // If a non-admin somehow has lockAll running, stop it when hiding controls
+    if (!isAdmin && window.lockAllInterval) {
+        clearInterval(window.lockAllInterval);
+        window.lockAllInterval = null;
+        const lockBtn = document.getElementById('lock_all');
+        if (lockBtn) lockBtn.textContent = 'Lock All';
+    }
     desks.forEach(d => {
         let card = document.getElementById(`desk_card_${d.id}`);
         if (!card) {
