@@ -1,8 +1,5 @@
 console.log('charts.js loaded');
 
-
-
-
 let myChart = null;
 let myChart2 = null;
 let lineChart = null;
@@ -72,22 +69,9 @@ async function updateCharts() {
 
 }
 
-// hide older data on the chart, keep only those in the time window in seconds
-/*function trimOldPoints(seconds) {
-    const cutoff = Date.now() - seconds * 1000;
 
-    Object.values(datasetsState).forEach(arr => {
-        while (arr.length && arr[0].x < cutoff) {
-            arr.shift();
-        }
-    });
-}
+/* STATE DEFINITIONS */
 
-
-
-/***********************
-* STATE DEFINITIONS
-***********************/
 const STANDING = v => v > 100;
 const NEUTRAL = v => v <= 100 && v >= 85;
 const SITTING = v => v < 85;
@@ -135,7 +119,15 @@ function addLivePoint(height) {
         }
     }
 
+    const containerBody3 = document.querySelector('.containerBody3');
+    const totalPoints = green.length + blue.length + red.length;
+
+    if (totalPoints > 10) {
+        containerBody3.style.width = `5000px`;
+    }
+
 }
+
 
 /***********************
      * CHART INITIALIZATION
@@ -213,34 +205,28 @@ function initLineChart() {
 }
 
 
-//Replace this with real API call
-function getCurrentDeskHeight() {
-    return 70 + Math.random() * 60;
-}
+const MY_DESK_ID = '00:ec:eb:50:c2:c8'; // hard-coded desk
 
+async function getDeskHeight() {
+    try {
+        const desks = await getDeskData();
+        const myDesk = desks.find(d => d.id === MY_DESK_ID);
 
+        if (!myDesk) {
+            console.warn('My desk not found');
+            return;
+        }
 
-/*const API_KEY = 'E9Y2LxT4g1hQZ7aD8nR3mWx5P0qK6pV7';
-const DESK_ID = 'cd:fb:1a:53:fb:e6';
-const BASE_URL = 'http://localhost:8000';
+        //  mm -> convert to cm
+        const heightCm = myDesk.position / 10;
 
-async function getCurrentDeskHeight() {
-    const res = await fetch(
-        `${BASE_URL}/api/v2/${API_KEY}/desks/${DESK_ID}/state`
-    );
+        addLivePoint(heightCm);
+        lineChart.update('none');
 
-    if (!res.ok) {
-        throw new Error('Failed to fetch desk state');
+    } catch (err) {
+        console.error('Failed to poll desk height', err);
     }
-
-    const state = await res.json();
-
-    // Convert mm → cm if your chart expects cm
-    return state.position_mm / 10;
-}*/
-
-
-
+}
 
 
 function createLegend(chart) {
@@ -265,38 +251,13 @@ function createLegend(chart) {
 }
 
 
-
-
 // Start everything
 document.addEventListener('DOMContentLoaded', () => {
     updateCharts();
     initLineChart();
 
     createLegend(lineChart);
-
-    // add an initial point immediately
-    addLivePoint(90);
-    addLivePoint(110);
     lineChart.update();
 
-    const FIVE_MINUTES = 5 * 60 * 1000;
-    setInterval(() => {
-        const height = getCurrentDeskHeight();
-        addLivePoint(height);
-
-        const containerBody3 = document.querySelector('.containerBody3')
-
-        const pointCount = datasetsState.green.length;
-
-        if (pointCount > 5) {
-            containerBody3.style.width = '5000px'
-        }
-
-        lineChart.update('none');
-
-    }, 3000);
-
-
-
-
+    setInterval(getDeskHeight, 3000);
 });
