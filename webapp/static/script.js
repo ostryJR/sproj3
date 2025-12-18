@@ -2,8 +2,32 @@
 // Desk Lock and Control JS
 // -------------------------
 
-window.lockIntervals = {}; // Track per-desk locks
-window.lockAllInterval = null;
+
+window.actionLocks = window.actionLocks || {};
+window.adminLocks = window.adminLocks || {};
+function lockDesk(id) { window.actionLocks[id] = true; }
+function unlockDesk(id) { delete window.actionLocks[id]; }
+
+async function lockedAction(id, action) {
+    // Block if admin-locked and current user is not admin
+    const d = Array.isArray(desks) ? desks.find(x => String(x.id) === String(id)) : null;
+    const isAdminUser = d && !!d.is_admin;
+    if (window.adminLocks && window.adminLocks[id] && !isAdminUser) {
+        showPopup(`Desk ${id} is admin-locked`);
+        return;
+    }
+    if (window.actionLocks && window.actionLocks[id]) return; // prevent concurrent actions
+    lockDesk(id);
+    try {
+        await action();
+        // simple: refresh UI
+        await fetchDesks();
+    } finally {
+        unlockDesk(id);
+    }
+}
+// Simple UI lock-all flag (no intervals)
+window.lockAll = false;
 var desks = [];
 
 // -------------------------
@@ -31,48 +55,40 @@ function showPopup(message) {
 // -------------------------
 // Lock/Unlock Desk
 // -------------------------
-function toggleLock(id) {
+async function toggleLock(id) {
+    // Admin lock: prevents non-admin users from performing actions on this desk
     const card = document.getElementById(`desk_card_${id}`);
-    const btn = card.querySelector(".lock-btn");
-    const heightInput = card.querySelector(".height-input");
-    const val = heightInput.value;
-
+    const btn = card?.querySelector(".lock-btn");
     if (!card || !btn) return;
 
-    if (card.classList.contains("locked")) {
-        // Unlock
-        card.classList.remove("locked");
-        card.querySelectorAll("button, input").forEach(el => el.disabled = false);
-        btn.disabled = false;
-        delete window.lockIntervals[id];
-        btn.textContent = "Lock Height";
-        showPopup(`Desk ${id} unlocked`);
-    } else {
-        if (!val) {
-            alert("Enter a height to lock.");
-            return;
+    const d = Array.isArray(desks) ? desks.find(x => String(x.id) === String(id)) : null;
+    const isAdminUser = d && !!d.is_admin;
+    try {
+        if (window.adminLocks[id]) {
+            const r = await fetch(`/api/desks/${id}/admin_unlock`, { method: 'POST' });
+            if (!r.ok) throw new Error('unlock failed');
+            delete window.adminLocks[id];
+            card.classList.remove("locked");
+            card.querySelectorAll("button, input").forEach(el => el.disabled = false);
+            btn.disabled = false;
+            btn.textContent = "Lock Desk";
+            showPopup(`Desk ${id} unlocked`);
+        } else {
+            const r = await fetch(`/api/desks/${id}/admin_lock`, { method: 'POST' });
+            if (!r.ok) throw new Error('lock failed');
+            window.adminLocks[id] = true;
+            card.classList.add("locked");
+            card.querySelectorAll("button, input").forEach(el => {
+                if (el.classList.contains("lock-btn")) return;
+                el.disabled = !isAdminUser;
+            });
+            btn.disabled = false;
+            btn.textContent = "Unlock Desk";
+            showPopup(`Desk ${id} locked by admin`);
         }
-        // Lock desk
-        card.classList.add("locked");
-        card.querySelectorAll("button, input").forEach(el => {
-            if (!el.classList.contains("lock-btn")) el.disabled = true;
-        });
-        btn.disabled = false;
-        btn.textContent = "Unlock";
-
-        // Periodic enforcement
-        window.lockIntervals[id] = setInterval(async () => {
-            try {
-                await fetch(`/api/desks/${id}/set`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ height: val })
-                });
-            } catch (e) {
-                console.error(`Lock Height failed for desk ${id}:`, e);
-            }
-        }, 1000);
-        showPopup(`Desk ${id} locked at ${val}mm`);
+    } catch (e) {
+        console.error('Admin lock toggle failed', e);
+        showPopup('Action failed');
     }
 }
 
@@ -82,42 +98,24 @@ function toggleLock(id) {
 function toggleLockAll() {
     const btn = document.getElementById('lock_all');
     const val = document.getElementById('height_all').value;
-
-    if (window.lockAllInterval) {
-        clearInterval(window.lockAllInterval);
-        window.lockAllInterval = null;
+    if (!window.lockAll) {
+        if (!val) { alert("Enter a height to lock."); return; }
+        window.lockAll = true;
+        btn.textContent = "Unlock All";
+        desks.forEach(d => lockDeskUI(d.id));
+        showPopup("All desks locked (UI only)");
+    } else {
+        window.lockAll = false;
         btn.textContent = "Lock All";
         desks.forEach(d => unlockDeskUI(d.id));
         showPopup("All desks unlocked");
-    } else {
-        if (!val) {
-            alert("Enter a height to lock.");
-            return;
-        }
-        btn.textContent = "Unlock All";
-        desks.forEach(d => lockDeskUI(d.id, val));
-
-        window.lockAllInterval = setInterval(async () => {
-            for (const d of desks) {
-                try {
-                    await fetch(`/api/desks/${d.id}/set`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ height: val })
-                    });
-                } catch (e) {
-                    console.error(`Lock All failed for desk ${d.id}:`, e);
-                }
-            }
-        }, 1000);
-        showPopup(`All desks locked at ${val}mm`);
     }
 }
 
 // -------------------------
 // Helper to lock a desk UI
 // -------------------------
-function lockDeskUI(id, val) {
+function lockDeskUI(id) {
     const card = document.getElementById(`desk_card_${id}`);
     if (!card) return;
     card.classList.add("locked");
@@ -125,20 +123,7 @@ function lockDeskUI(id, val) {
         if (!el.classList.contains("lock-btn")) el.disabled = true;
     });
     card.querySelector(".lock-btn").disabled = false;
-    card.querySelector(".lock-btn").textContent = "Unlock";
-    // Ensure height enforcement
-    if (window.lockIntervals[id]) clearInterval(window.lockIntervals[id]);
-    window.lockIntervals[id] = setInterval(async () => {
-        try {
-            await fetch(`/api/desks/${id}/set`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ height: val })
-            });
-        } catch (e) {
-            console.error(`Lock Height failed for desk ${id}:`, e);
-        }
-    }, 1000);
+    card.querySelector(".lock-btn").textContent = "Unlock Desk";
 }
 
 // -------------------------
@@ -150,9 +135,7 @@ function unlockDeskUI(id) {
     card.classList.remove("locked");
     card.querySelectorAll("button, input").forEach(el => el.disabled = false);
     card.querySelector(".lock-btn").disabled = false;
-    card.querySelector(".lock-btn").textContent = "Lock Height";
-    if (window.lockIntervals[id]) clearInterval(window.lockIntervals[id]);
-    delete window.lockIntervals[id];
+    card.querySelector(".lock-btn").textContent = "Lock Desk";
 }
 
 // -------------------------
@@ -170,6 +153,19 @@ async function fetchDesks(desksData) {
     const container = document.getElementById("desks");
     const currentDeskIds = new Set(desksData.map(d => d.id));
 
+    // Hide or show global controls based on admin status
+    const isAdmin = desksData && desksData.length ? desksData.some(x => !!x.is_admin) : false;
+    const allControls = document.querySelector('.all-desks-control');
+    if (allControls) {
+        allControls.style.display = isAdmin ? '' : 'none';
+    }
+    // If a non-admin somehow has lockAll running, stop it when hiding controls
+    if (!isAdmin && window.lockAll) {
+        window.lockAll = false;
+        const lockBtn = document.getElementById('lock_all');
+        if (lockBtn) lockBtn.textContent = 'Lock All';
+    }
+
     desksData.forEach(d => {
         let card = document.getElementById(`desk_card_${d.id}`);
         if (!card) {
@@ -180,6 +176,25 @@ async function fetchDesks(desksData) {
             card.querySelector('.desk-id').textContent = `ID: ${d.id}`;
             card.querySelector('.pos').textContent = d.position;
 
+            // Error/status display (initial)
+            const errorDivInit = card.querySelector('.desk-error');
+            if (errorDivInit) {
+                const hasStatus = d.status && d.status !== 'Normal';
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.remove('no-error');
+                    errorDivInit.textContent = text;
+                } else {
+                    // Show No current error by default
+                    errorDivInit.style.display = 'block';
+                    errorDivInit.classList.add('no-error');
+                    errorDivInit.textContent = 'No current error';
+                }
+            }
+
             // Assign IDs to inputs/buttons
             card.querySelector('.height-input').id = `height_${d.id}`;
             card.querySelector('.hour-input').id = `hour_${d.id}`;
@@ -188,15 +203,91 @@ async function fetchDesks(desksData) {
             card.querySelector('.lock-btn').id = `lock_${d.id}`;
 
             // Button handlers
-            card.querySelector('.btn-up').onclick = () => move(d.id, 'up');
-            card.querySelector('.btn-down').onclick = () => move(d.id, 'down');
-            card.querySelector('.btn-step').onclick = () => setHeight(d.id);
-            card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
+            card.querySelector('.btn-up').onclick = () => lockedAction(d.id, () => move(d.id, 'up'));
+            card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => move(d.id, 'down'));
+            card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
+            card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
             card.querySelector('.lock-btn').onclick = () => toggleLock(d.id);
+
+            // Hide Lock and Schedule controls for non-admin users
+            if (!d.is_admin) {
+                const lockGroup = card.querySelector('.lock-btn')?.closest('.control-group');
+                if (lockGroup) lockGroup.style.display = 'none';
+                const schedGroup = card.querySelector('.schedule-btn')?.closest('.control-group');
+                if (schedGroup) schedGroup.style.display = 'none';
+            }
+
+            // Apply admin-locked state from server
+            if (d.admin_locked) {
+                window.adminLocks[d.id] = true;
+                card.classList.add('locked');
+                card.querySelectorAll('button, input').forEach(el => {
+                    if (el.classList.contains('lock-btn')) return;
+                    el.disabled = !d.is_admin;
+                });
+            } else {
+                delete window.adminLocks[d.id];
+            }
 
             container.appendChild(card);
         } else {
-            card.querySelector('.pos').textContent = d.position;
+            // Update dynamic values
+            const posSpan = card.querySelector('.pos');
+            if (posSpan) posSpan.textContent = d.position;
+
+            // Update error/status display
+            const errorDiv = card.querySelector('.desk-error');
+            const hasStatus = d.status && d.status !== 'Normal';
+            if (errorDiv) {
+                // current errors (status != Normal) Otherwise 'No current error'
+                if (hasStatus && d.currentError) {
+                    const ce = d.currentError;
+                    let text = d.status;
+                    if (ce && ce.errorCode) text += ` - Error ${ce.errorCode}`;
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.remove('no-error');
+                    errorDiv.textContent = text;
+                } else {
+                    // No active hindering error
+                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('no-error');
+                    errorDiv.textContent = 'No current error';
+                }
+            }
+
+            // Hide Lock and Schedule controls for non-admin users (update)
+            if (!d.is_admin) {
+                const lockGroup = card.querySelector('.lock-btn')?.closest('.control-group');
+                if (lockGroup) lockGroup.style.display = 'none';
+                const schedGroup = card.querySelector('.schedule-btn')?.closest('.control-group');
+                if (schedGroup) schedGroup.style.display = 'none';
+            } else {
+                const lockGroup = card.querySelector('.lock-btn')?.closest('.control-group');
+                if (lockGroup) lockGroup.style.display = '';
+                const schedGroup = card.querySelector('.schedule-btn')?.closest('.control-group');
+                if (schedGroup) schedGroup.style.display = '';
+            }
+
+            // Apply/clear admin-locked state from server
+            if (d.admin_locked) {
+                window.adminLocks[d.id] = true;
+                card.classList.add('locked');
+                card.querySelectorAll('button, input').forEach(el => {
+                    if (el.classList.contains('lock-btn')) return;
+                    el.disabled = !d.is_admin;
+                });
+            } else {
+                delete window.adminLocks[d.id];
+                // Re-enable controls if previously locked (except non-admin hidden groups)
+                card.classList.remove('locked');
+                card.querySelectorAll('button, input').forEach(el => el.disabled = false);
+            }
+        }
+
+        // Update lock button state
+        const lockBtn = card.querySelector('.lock-btn');
+        if (lockBtn) {
+            lockBtn.textContent = (window.adminLocks && window.adminLocks[d.id]) || window.lockAll ? "Unlock Desk" : "Lock Desk";
         }
     });
 
@@ -206,6 +297,9 @@ async function fetchDesks(desksData) {
         const id = card.id.replace("desk_card_", "");
         if (!currentDeskIds.has(id)) card.remove();
     });
+    // Process popups for any new or resolved errors
+    try { processPopups(desksData); } catch (e) { console.error('Popup processing failed', e); }
+    getSchedule("all");
 }
 
 // -------------------------
@@ -227,8 +321,7 @@ async function setHeightAll() {
         alert("Please enter a valid height.");
         return;
     }
-    for (const desk of desks) {
-        await setHeight(desk.id, val);
-    }
+    const desksData = await getDeskData();
+    await Promise.all(desksData.map(desk => setHeight(desk.id, val)));
     document.getElementById('height_all').value = val;
 }

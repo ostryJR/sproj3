@@ -74,6 +74,11 @@ scheduler = BackgroundScheduler()
 schedulerForDailySchedule = BackgroundScheduler()
 
 # -----------------------
+# -----------------------
+ADMIN_LOCKS = set()
+FROZEN_DESKS = {}
+
+# -----------------------
 # FastAPI startup event
 # -----------------------
 @app.on_event("startup")
@@ -103,6 +108,21 @@ def startup_event():
         'interval',
         seconds=5,
         id="sync_desks_to_db",
+        replace_existing=True
+    )
+
+    # Enforce frozen desks every second
+    def enforce_freeze_job():
+        for desk_id, height in list(FROZEN_DESKS.items()):
+            try:
+                requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": int(height)})
+            except Exception:
+                pass
+    scheduler.add_job(
+        enforce_freeze_job,
+        'interval',
+        seconds=1,
+        id="enforce_freeze",
         replace_existing=True
     )
 
@@ -193,51 +213,114 @@ def list_desks(request: Request):
             "usage": desk_data.get("usage", {}),
             "lastErrors": [ {"errorCode": e.get("errorCode")} for e in last_errors ],
             "currentError": current_error,
-            "is_admin": user["is_admin"]
+            "is_admin": user["is_admin"],
+            "admin_locked": desk_id in ADMIN_LOCKS
         })
     return JSONResponse(desks)
+
+# -----------------------
+# Admin lock endpoints
+# -----------------------
+@app.post("/api/desks/{desk_id}/admin_lock")
+def admin_lock_desk(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if not user.get("is_admin"):
+        return JSONResponse({"error": "Forbidden"}, status_code=403)
+    ADMIN_LOCKS.add(desk_id)
+    return JSONResponse({"locked": True, "desk_id": desk_id})
+
+@app.post("/api/desks/{desk_id}/admin_unlock")
+def admin_unlock_desk(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if not user.get("is_admin"):
+        return JSONResponse({"error": "Forbidden"}, status_code=403)
+    ADMIN_LOCKS.discard(desk_id)
+    return JSONResponse({"locked": False, "desk_id": desk_id})
 
 # Move desk endpoints
 @app.post("/api/desks/{desk_id}/up")
 async def desk_up(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+        return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     step = int(data.get("step", 50))
     desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
     desk_data = desk_resp.json()
     new_pos = desk_data.get("state", {}).get("position_mm", 0) + step
     resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": new_pos})
+    FROZEN_DESKS[desk_id] = new_pos
     return JSONResponse(resp.json())
 
 @app.post("/api/desks/{desk_id}/down")
 async def desk_down(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+        return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     step = int(data.get("step", 50))
     desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
     desk_data = desk_resp.json()
     new_pos = desk_data.get("state", {}).get("position_mm", 0) - step
     resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": new_pos})
+    FROZEN_DESKS[desk_id] = new_pos
     return JSONResponse(resp.json())
 
 @app.post("/api/desks/{desk_id}/set")
 async def set_height(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+        return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     target = int(data.get("height", 680))
     resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
+    FROZEN_DESKS[desk_id] = target
     return JSONResponse(resp.json())
 
 @app.post("/api/desks/{desk_id}/schedule")
 async def schedule_move(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+        return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     target = int(data.get("height", 680))
     hour = int(data.get("hour", 12))
     minute = int(data.get("minute", 0))
 
     def job(height):
-        requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": height})
+        try:
+            requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": height})
+            FROZEN_DESKS[desk_id] = int(height)
+        except Exception:
+            pass
 
     job_id = f"{desk_id.replace(':','')}_{hour}_{minute}"
     scheduler.add_job(job, 'cron', hour=hour, minute=minute, id=job_id, replace_existing=True, args=[target])
     return {"scheduled": True, "desk_id": desk_id, "height": target, "time": f"{hour:02d}:{minute:02d}"}
+
+# Unfreeze endpoint (optional)
+@app.post("/api/desks/{desk_id}/unfreeze")
+def unfreeze_desk(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    # Allow only admins to unfreeze explicitly
+    if not user.get("is_admin"):
+        return JSONResponse({"error": "Forbidden"}, status_code=403)
+    FROZEN_DESKS.pop(desk_id, None)
+    return JSONResponse({"unfrozen": True, "desk_id": desk_id})
 
 # Get schedule endpoint remains unchanged
 @app.post("/api/desks/get_schedule")
