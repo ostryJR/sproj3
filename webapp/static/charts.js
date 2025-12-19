@@ -363,12 +363,11 @@ function updateStateDonut() {
 async function getDeskHeight() {
     try {
         const desks = await getDeskData();
-        const myDesk = desks.find(d => d.id === CURRENT_DESK_ID);
-
-        if (!myDesk) {
-            console.warn('My desk not found');
+        if (!Array.isArray(desks) || desks.length === 0) {
+            console.warn('No desks available or not authenticated');
             return;
         }
+        const myDesk = desks.find(d => d.id === CURRENT_DESK_ID) || desks[0];
 
         //  mm -> convert to cm
         const heightCm = myDesk.position / 10;
@@ -376,7 +375,7 @@ async function getDeskHeight() {
         addLivePoint(heightCm);
         updateDebugPanel();
         updateStateDonut();
-        lineChart.update('none');
+        if (lineChart) lineChart.update('none');
 
     } catch (err) {
         console.error('Failed to poll desk height', err);

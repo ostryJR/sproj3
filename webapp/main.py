@@ -11,7 +11,7 @@ from passlib.hash import pbkdf2_sha256
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import inspect
 import func
-from db import engine
+from db import engine, DB_PATH
 from setup_db import initialize_db
 from init_user_db import init_db
 # Import the sync function
@@ -21,8 +21,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 # -----------------------
 # Database setup for SQLite
 # -----------------------
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
-
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -77,6 +75,7 @@ schedulerForDailySchedule = BackgroundScheduler()
 # -----------------------
 ADMIN_LOCKS = set()
 FROZEN_DESKS = {}
+ADMIN_LOCK_ALL = False
 
 # -----------------------
 # FastAPI startup event
@@ -214,7 +213,7 @@ def list_desks(request: Request):
             "lastErrors": [ {"errorCode": e.get("errorCode")} for e in last_errors ],
             "currentError": current_error,
             "is_admin": user["is_admin"],
-            "admin_locked": desk_id in ADMIN_LOCKS
+            "admin_locked": (desk_id in ADMIN_LOCKS) or ADMIN_LOCK_ALL
         })
     return JSONResponse(desks)
 
@@ -261,7 +260,7 @@ async def desk_up(desk_id: str, request: Request):
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+    if (desk_id in ADMIN_LOCKS or ADMIN_LOCK_ALL) and not user.get("is_admin"):
         return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     step = int(data.get("step", 50))
@@ -277,7 +276,7 @@ async def desk_down(desk_id: str, request: Request):
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+    if (desk_id in ADMIN_LOCKS or ADMIN_LOCK_ALL) and not user.get("is_admin"):
         return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     step = int(data.get("step", 50))
@@ -293,7 +292,7 @@ async def set_height(desk_id: str, request: Request):
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+    if (desk_id in ADMIN_LOCKS or ADMIN_LOCK_ALL) and not user.get("is_admin"):
         return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     target = int(data.get("height", 680))
@@ -306,7 +305,7 @@ async def schedule_move(desk_id: str, request: Request):
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    if desk_id in ADMIN_LOCKS and not user.get("is_admin"):
+    if (desk_id in ADMIN_LOCKS or ADMIN_LOCK_ALL) and not user.get("is_admin"):
         return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
     data = await request.json()
     target = int(data.get("height", 680))
@@ -335,6 +334,91 @@ def unfreeze_desk(desk_id: str, request: Request):
         return JSONResponse({"error": "Forbidden"}, status_code=403)
     FROZEN_DESKS.pop(desk_id, None)
     return JSONResponse({"unfrozen": True, "desk_id": desk_id})
+
+# Lock/Unlock all desks (admin only)
+@app.post("/api/desks/admin_lock_all")
+def admin_lock_all(request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if not user.get("is_admin"):
+        return JSONResponse({"error": "Forbidden"}, status_code=403)
+    global ADMIN_LOCK_ALL
+    ADMIN_LOCK_ALL = True
+    return JSONResponse({"locked_all": True})
+
+@app.post("/api/desks/admin_unlock_all")
+def admin_unlock_all(request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    if not user.get("is_admin"):
+        return JSONResponse({"error": "Forbidden"}, status_code=403)
+    global ADMIN_LOCK_ALL
+    ADMIN_LOCK_ALL = False
+    return JSONResponse({"locked_all": False})
+
+# -----------------------
+# Favorite height (simple per-user, per-desk)
+# -----------------------
+@app.post("/api/desks/{desk_id}/favorite/save")
+async def save_favorite(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    # Always read current height from simulator for simplicity
+    try:
+        desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
+        height = int(desk_resp.json().get("state", {}).get("position_mm", 0))
+    except Exception:
+        height = 0
+    # Persist in users table
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE users SET favorite_height = ? WHERE username = ?", (int(height), user["username"]))
+    conn.commit()
+    conn.close()
+    return JSONResponse({"saved": True, "desk_id": desk_id, "height": int(height)})
+
+@app.post("/api/desks/{desk_id}/favorite/go")
+async def go_favorite(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    # Respect locks for non-admin users
+    if (desk_id in ADMIN_LOCKS or ADMIN_LOCK_ALL) and not user.get("is_admin"):
+        return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
+    # Read from users table
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT favorite_height FROM users WHERE username = ?", (user["username"],))
+    row = c.fetchone()
+    conn.close()
+    fav = row["favorite_height"] if row else None
+    if fav is None:
+        return JSONResponse({"error": "No favorite saved"}, status_code=404)
+    try:
+        requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": int(fav)})
+        FROZEN_DESKS[desk_id] = int(fav)
+        return JSONResponse({"set": True, "desk_id": desk_id, "height": int(fav)})
+    except Exception:
+        return JSONResponse({"error": "Failed to set height"}, status_code=500)
+
+@app.get("/api/desks/{desk_id}/favorite")
+def get_favorite(desk_id: str, request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT favorite_height FROM users WHERE username = ?", (user["username"],))
+    row = c.fetchone()
+    conn.close()
+    fav = row["favorite_height"] if row else None
+    if fav is None:
+        return JSONResponse({"favorite": None, "desk_id": desk_id})
+    return JSONResponse({"favorite": int(fav), "desk_id": desk_id})
+
 
 # Get schedule endpoint remains unchanged
 @app.post("/api/desks/get_schedule")

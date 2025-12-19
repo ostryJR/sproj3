@@ -1,4 +1,10 @@
-# Byte-compiled files
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Project-specific generated database file (was tracked earlier)
+webapp/users.db# Byte-compiled files
 __pycache__/
 *.py[cod]
 *$py.class

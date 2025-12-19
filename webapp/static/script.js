@@ -53,6 +53,25 @@ function showPopup(message) {
 }
 
 // -------------------------
+// Favorite helpers
+// -------------------------
+async function updateFavoriteLabel(deskId) {
+    try {
+        const r = await fetch(`/api/desks/${deskId}/favorite`);
+        if (!r.ok) return;
+        const data = await r.json();
+        const el = document.getElementById(`fav_label_${deskId}`);
+        if (!el) return;
+        if (data && typeof data.favorite === 'number') {
+            el.textContent = `Favorite: ${data.favorite}`;
+        } else {
+            el.textContent = 'Favorite: —';
+        }
+    } catch (e) {
+    }
+}
+
+// -------------------------
 // Lock/Unlock Desk
 // -------------------------
 async function toggleLock(id) {
@@ -97,18 +116,26 @@ async function toggleLock(id) {
 // -------------------------
 function toggleLockAll() {
     const btn = document.getElementById('lock_all');
-    const val = document.getElementById('height_all').value;
     if (!window.lockAll) {
-        if (!val) { alert("Enter a height to lock."); return; }
-        window.lockAll = true;
-        btn.textContent = "Unlock All";
-        desks.forEach(d => lockDeskUI(d.id));
-        showPopup("All desks locked (UI only)");
+        fetch('/api/desks/admin_lock_all', { method: 'POST' })
+            .then(r => {
+                if (!r.ok) throw new Error('lock-all failed');
+                window.lockAll = true;
+                btn.textContent = "Unlock All";
+                desks.forEach(d => lockDeskUI(d.id));
+                showPopup("All desks locked by admin");
+            })
+            .catch(e => { console.error(e); showPopup('Action failed'); });
     } else {
-        window.lockAll = false;
-        btn.textContent = "Lock All";
-        desks.forEach(d => unlockDeskUI(d.id));
-        showPopup("All desks unlocked");
+        fetch('/api/desks/admin_unlock_all', { method: 'POST' })
+            .then(r => {
+                if (!r.ok) throw new Error('unlock-all failed');
+                window.lockAll = false;
+                btn.textContent = "Lock All";
+                desks.forEach(d => unlockDeskUI(d.id));
+                showPopup("All desks unlocked");
+            })
+            .catch(e => { console.error(e); showPopup('Action failed'); });
     }
 }
 
@@ -227,6 +254,35 @@ async function fetchDesks(desksData) {
             card.querySelector('.lock-btn').onclick = null;
             card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
 
+            // Favorite buttons
+            if (!document.getElementById(`fav_save_${d.id}`)) {
+                const favSave = document.createElement('button');
+                favSave.id = `fav_save_${d.id}`;
+                favSave.className = 'btn btn-fav-save';
+                favSave.textContent = 'Save Favorite';
+                favSave.onclick = async () => {
+                    try {
+                        await fetch(`/api/desks/${d.id}/favorite/save`, { method: 'POST' });
+                        showPopup(`Saved favorite for ${d.id}`);
+                    } catch { showPopup('Save failed'); }
+                };
+                card.appendChild(favSave);
+            }
+            if (!document.getElementById(`fav_go_${d.id}`)) {
+                const favGo = document.createElement('button');
+                favGo.id = `fav_go_${d.id}`;
+                favGo.className = 'btn btn-fav-go';
+                favGo.textContent = 'Go Favorite';
+                favGo.onclick = async () => {
+                    try {
+                        await fetch(`/api/desks/${d.id}/favorite/go`, { method: 'POST' });
+                        await fetchDesks();
+                        showPopup(`Moved ${d.id} to favorite`);
+                    } catch { showPopup('Move failed'); }
+                };
+                card.appendChild(favGo);
+            }
+
             // Inputs
             // Assign IDs to inputs/buttons
             card.querySelector('.height-input').id = `height_${d.id}`;
@@ -241,6 +297,16 @@ async function fetchDesks(desksData) {
             card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
             card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
             card.querySelector('.lock-btn').onclick = () => toggleLock(d.id);
+
+            // Favorite label
+            if (!document.getElementById(`fav_label_${d.id}`)) {
+                const favLbl = document.createElement('div');
+                favLbl.id = `fav_label_${d.id}`;
+                favLbl.className = 'desk-favorite';
+                favLbl.textContent = 'Favorite: —';
+                card.appendChild(favLbl);
+                updateFavoriteLabel(d.id);
+            }
 
             // Hide Lock and Schedule controls for non-admin users
             if (!d.is_admin) {
@@ -267,6 +333,9 @@ async function fetchDesks(desksData) {
             // Update dynamic values
             const posSpan = card.querySelector('.pos');
             if (posSpan) posSpan.textContent = d.position;
+
+            // Refresh favorite label
+            updateFavoriteLabel(d.id);
 
             // Update error/status display
             const errorDiv = card.querySelector('.desk-error');

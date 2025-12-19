@@ -1,16 +1,12 @@
 # User database setup for login system
 import sqlite3
-
-
 from passlib.hash import pbkdf2_sha256
+from db import DB_PATH
+import os
 
 def init_db():
-        
-    import os
-    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'users.db')
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("DROP TABLE users;")
     
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -34,6 +30,11 @@ def init_db():
     try:
         c.execute('ALTER TABLE users ADD COLUMN presetStand INTEGER DEFAULT 680')
         c.execute('ALTER TABLE users ADD COLUMN presetSit INTEGER DEFAULT 1100')
+    except sqlite3.OperationalError:
+        pass
+    # Favorite height per user
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN favorite_height INTEGER')
     except sqlite3.OperationalError:
         pass
 
