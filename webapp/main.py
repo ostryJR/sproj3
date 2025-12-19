@@ -348,8 +348,10 @@ async def userdata(request: Request):
     preSit = data.get("presetSit")
     preStand = data.get("presetStand")
     if data != None:
-        pass
-        #c.execute(f'UPDATE presetSit, presetStand FROM users WHERE username = ? VALUES ({preSit}, {preStand})', (user,))#, (user,preSit,preStand,))
+        #c.execute("UPDATE users SET presetSit= ? , presetStand= ?  WHERE username = ? ;", (user,preSit,preStand))
+        c.execute("UPDATE users SET presetSit= ? , presetStand= ?  WHERE username = ? ;", (preSit,preStand,user,))
+        print("UPDATE users SET presetSit=?, presetStand=? WHERE username = ?;", (user,preSit,preStand))
+        conn.commit()
     conn.close()
     return HTMLResponse(status_code=200)
     
