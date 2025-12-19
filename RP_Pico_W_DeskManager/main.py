@@ -5,7 +5,7 @@ from machine import Pin, I2C, ADC, PWM
 
 # -------- OLED screen object ----------
 from PiicoDev_SSD1306 import *
-# file downloaded from: https://core-electronics.com.au/guides/raspberry-pi-pico/piicodev-oled-ssd1306-raspberry-pi-pico-guide/ 
+# file(s) downloaded from: https://core-electronics.com.au/guides/raspberry-pi-pico/piicodev-oled-ssd1306-raspberry-pi-pico-guide/ 
 Display = create_PiicoDev_SSD1306()
 
 

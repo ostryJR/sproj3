@@ -1,17 +1,17 @@
 
 # -------- Wi-Fi network credentials ----------
 def ssid():
-    return "VictoryRoyale"
+    return "" # add WIFI name
 
 def password():
-    return "ChristIsKing"
+    return "" # add WIFI password
 
 
 # -------- Website host IP adress ----------
 def url():
-    pc_ip = "10.111.29.5"
-    port = 8001
-    api_key = "E9Y2LxT4g1hQZ7aD8nR3mWx5P0qK6pV7"
-    desk_id = "ee:62:5b:b8:73:1d"
+    pc_ip = "" # add machine/server IP address
+    port = 8001 # <-- simulator working port
+    api_key = "" # add API key
+    desk_id = "ee:62:5b:b8:73:1d" # <-- working example
     _url = f"http://{pc_ip}:{port}/api/v2/{api_key}/desks/{desk_id}"
     return _url
