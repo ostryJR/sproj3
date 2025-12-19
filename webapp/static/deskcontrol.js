@@ -33,7 +33,7 @@ async function setHeight(id, preset=null) {
         }
     }else{
         for (let i = 0; i < 5; i++) {
-            const resp = await fetch(`/api/desks/${id}/set`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preset: parseInt(preset) }) });
+            const resp = await fetch(`/api/desks/${id}/set`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preset: preset }) });
             if (!resp.ok) {
                 const text = await resp.text();
                 alert(`Error setting height: ${resp.status} ${text}`);
