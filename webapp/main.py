@@ -222,24 +222,7 @@ async def desk_down(desk_id: str, request: Request):
 async def set_height(desk_id: str, request: Request):
     data = await request.json()
     target = int(data.get("height", 680))
-    preset = data.get("preset", None)
-    if preset==None:
-        resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
-    else:
-        user = request.session.get("user")['username']
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT presetSit, presetStand FROM users WHERE username = ?", (user,))
-        presets = c.fetchone()
-        conn.close()
-        if preset=='sit':
-            target = int(presets["presetSit"])
-            print("sittin")
-        else:
-            target = int(presets["presetStand"])
-            print("standin")
-        resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
-        print(F'AAAAAAAAAAAAAAAAAAAAAAAA {presets["presetSit"]}')
+    resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
     return JSONResponse(resp.json())
 
 @app.post("/api/desks/{desk_id}/schedule")
@@ -348,9 +331,7 @@ async def userdata(request: Request):
     preSit = data.get("presetSit")
     preStand = data.get("presetStand")
     if data != None:
-        #c.execute("UPDATE users SET presetSit= ? , presetStand= ?  WHERE username = ? ;", (user,preSit,preStand))
         c.execute("UPDATE users SET presetSit= ? , presetStand= ?  WHERE username = ? ;", (preSit,preStand,user,))
-        print("UPDATE users SET presetSit=?, presetStand=? WHERE username = ?;", (user,preSit,preStand))
         conn.commit()
     conn.close()
     return HTMLResponse(status_code=200)
