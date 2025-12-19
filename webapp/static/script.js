@@ -27,6 +27,21 @@ async function getDeskData() {
     return data;
 }
 
+async function getUserData() {
+    const resp = await fetch(`/api/userdata`, {method: "POST", headers: { "Content-Type": "application/json" }});
+    const data = await resp.json();
+    document.getElementById("presetHeightSit").value = data["presetSit"];
+    document.getElementById("presetHeightStand").value = data["presetStand"];
+}
+async function setUserData() {
+    await fetch(`/api/userdataupdate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presetSit: document.getElementById("presetHeightSit").value, presetStand: document.getElementById("presetHeightStand").value})
+    });
+    getUserData();
+}
+
 async function fetchDesks(desks) {
     // to avoid system error fetchDesks expects a desks array but setHeight() calls it with no args
     if (!desks) {
@@ -80,8 +95,8 @@ async function fetchDesks(desks) {
             // Button handlers
             card.querySelector('.btn-up').onclick = () => lockedAction(d.id, () => move(d.id, 'up'));
             card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => setHeight(d.id, 'down'));
-            card.querySelector('.btn-sit').onclick = () => lockedAction(d.id, () => goToPreset(d.id, 'sit'));
-            card.querySelector('.btn-stand').onclick = () => lockedAction(d.id, () => goToPreset(d.id, 'stand'));
+            card.querySelector('.btn-sit').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "sit"));
+            card.querySelector('.btn-stand').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "stand"));
             card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
             card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
             // Lock button is visible but non-functional for now

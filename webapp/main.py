@@ -323,6 +323,38 @@ async def get_schedule(request: Request):
     # print(f'{scheduler.get_jobs()}')
     return {"schedule": schedule_data}
 
+@app.post("/api/userdata")
+async def userdata(request: Request):
+    # data = await request.json()
+    user = request.session.get("user")['username']
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT presetSit, presetStand FROM users WHERE username = ?", (user,))
+    presets = c.fetchone()
+    conn.close()
+    
+    preSit = int(presets["presetSit"])
+    preStand = int(presets["presetStand"])
+    return JSONResponse(content={"presetSit": preSit, "presetStand": preStand})
+
+
+@app.post("/api/userdataupdate")
+async def userdata(request: Request):
+    data = await request.json()
+    user = request.session.get("user")['username']
+    conn = get_db()
+    c = conn.cursor()
+    
+    preSit = data.get("presetSit")
+    preStand = data.get("presetStand")
+    if data != None:
+        pass
+        #c.execute(f'UPDATE presetSit, presetStand FROM users WHERE username = ? VALUES ({preSit}, {preStand})', (user,))#, (user,preSit,preStand,))
+    conn.close()
+    return HTMLResponse(status_code=200)
+    
+    
+
 
 #run scheduler so that the day schedule for desks is loaded at 00:00
 func.schedule(scheduler, SIMULATOR_URL, API_KEY)
