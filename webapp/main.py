@@ -218,6 +218,20 @@ def list_desks(request: Request):
         })
     return JSONResponse(desks)
 
+
+@app.get("/api/me")
+def get_me(request: Request):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    return {
+        "username": user["username"],
+        "desk_id": user["desk_id"],
+        "is_admin": user["is_admin"]
+    }
+  
+
 # -----------------------
 # Admin lock endpoints
 # -----------------------

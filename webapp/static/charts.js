@@ -1,4 +1,20 @@
 let lineChart = null;
+let stateDonutChart = null;
+let MY_DESK_ID = null;
+
+
+
+// get desk of current user
+
+async function loadCurrentUserDesk() {
+    const res = await fetch('/api/me');
+    if (!res.ok) {
+        throw new Error('Not authenticated');
+    }
+
+    const user = await res.json();
+    MY_DESK_ID = user.desk_id;
+}
 
 async function updateCharts() {
     const desks = await getDeskData();
@@ -30,34 +46,15 @@ async function updateCharts() {
             }
         }
     });
-    const ctx2 = document.getElementById('myChart2');
-    new Chart(ctx2, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [10, 20, 30]
-            }],
-            labels: [
-                'Red',
-                'Yellow',
-                'Blue'
-            ]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
 }
 
-// Desk state definitions
+function getState(v) {
+    if (v > 100) return 'STANDING';
+    if (v >= 85) return 'NEUTRAL';
+    return 'SITTING';
+}
 
-const STANDING = v => v > 100;
-const NEUTRAL = v => v <= 100 && v >= 85;
-const SITTING = v => v < 85;
+let lastState = null;
 
 const datasetsState = {
     green: [],
@@ -68,52 +65,47 @@ const datasetsState = {
 
 function addLivePoint(height) {
     const now = Date.now();
+    const state = getState(height);
 
     const { green, blue, red, transition } = datasetsState;
 
-    // Find previous value
-    const lastValue =
-        [...green, ...blue, ...red]
-            .map(p => p?.y)
-            .filter(v => v !== undefined)
-            .at(-1);
-
-    // Push default NaN points
+    // Every color exists, this ensures that a point exists only if it has a y value, otherwise it's not deifined, thus not shown
     green.push({ x: now, y: NaN });
     blue.push({ x: now, y: NaN });
     red.push({ x: now, y: NaN });
     transition.push({ x: now, y: NaN });
 
-    // Assign current state
-    if (STANDING(height)) green.at(-1).y = height;
-    else if (NEUTRAL(height)) blue.at(-1).y = height;
-    else if (SITTING(height)) red.at(-1).y = height;
+    // Assign current value to exactly one dataset
+    if (state === 'STANDING') green.at(-1).y = height;
+    else if (state === 'NEUTRAL') blue.at(-1).y = height;
+    else red.at(-1).y = height;
 
-    // Detect transition
-    if (lastValue !== undefined) {
-        const changed =
-            STANDING(lastValue) !== STANDING(height) ||
-            NEUTRAL(lastValue) !== NEUTRAL(height) ||
-            SITTING(lastValue) !== SITTING(height);
-
-        if (changed) {
-            transition.at(-1).y = height;
-        }
+    // Transition
+    if (lastState !== null && lastState !== state) {
+        transition.at(-1).y = height;
     }
+
+    lastState = state;
 
     const containerBody3 = document.querySelector('.containerBody3');
     const totalPoints = green.length + blue.length + red.length;
 
-    if (totalPoints > 10) {
-        containerBody3.style.width = `5000px`;
+    if (totalPoints <= 5) {
+        containerBody3.style.width = '500px';
+    } else if (totalPoints <= 10) {
+        containerBody3.style.width = '1500px';
+    } else if (totalPoints <= 15) {
+        containerBody3.style.width = '3500px';
+    }
+    else {
+        containerBody3.style.width = '5000px';
     }
 
 }
 
 
-/***********************
-     * CHART INITIALIZATION
-     ***********************/
+// line chart
+
 function initLineChart() {
 
     if (lineChart) return;
@@ -146,6 +138,7 @@ function initLineChart() {
                     label: 'Transition',
                     data: datasetsState.transition,
                     borderColor: 'gray',
+                    showLine: false,
                     borderDash: [5, 5],
                     borderWidth: 2
                 }
@@ -186,8 +179,112 @@ function initLineChart() {
     });
 }
 
+//donut chart
 
-const MY_DESK_ID = '00:ec:eb:50:c2:c8'; // hard-coded desk
+function initStateDonutChart() {
+    const ctx = document.getElementById('myChart2');
+
+    stateDonutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Standing', 'Neutral', 'Sitting'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: ['green', 'blue', 'red']
+            }]
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Desk State Distribution (%)'
+                }
+            }
+        }
+    });
+}
+
+
+
+//const MY_DESK_ID = '00:ec:eb:50:c2:c8'; // hard-coded desk
+
+// 2 following functions for point counting from graph
+function countValid(dataset) {
+    let count = 0;
+    for (const p of dataset) {
+        if (typeof p.y === 'number' && !isNaN(p.y)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+function updateDebugPanel() {
+    const standing = countValid(datasetsState.green);
+    const neutral = countValid(datasetsState.blue);
+    const sitting = countValid(datasetsState.red);
+    const trans = countValid(datasetsState.transition);
+
+    document.getElementById('dbgStanding').textContent = standing;
+    document.getElementById('dbgSitting').textContent = sitting;
+    document.getElementById('dbgTransitions').textContent = trans;
+}
+
+
+
+// function for percentages
+
+function getStateMetrics() {
+    const standing = countValid(datasetsState.green);
+    const neutral = countValid(datasetsState.blue);
+    const sitting = countValid(datasetsState.red);
+    const transitions = countValid(datasetsState.transition);
+
+    const total = standing + neutral + sitting;
+
+    // Avoid division by zero
+    if (total === 0) {
+        return {
+            standing: 0,
+            neutral: 0,
+            sitting: 0,
+            transitions: 0,
+            percentages: {
+                standing: 0,
+                neutral: 0,
+                sitting: 0
+            }
+        };
+    }
+
+    return {
+        standing,
+        neutral,
+        sitting,
+        transitions,
+        percentages: {
+            standing: +(standing / total * 100).toFixed(1),
+            neutral: +(neutral / total * 100).toFixed(1),
+            sitting: +(sitting / total * 100).toFixed(1)
+        }
+    };
+}
+
+function updateStateDonut() {
+    if (!stateDonutChart) return;
+
+    const metrics = getStateMetrics();
+
+    stateDonutChart.data.datasets[0].data = [
+        metrics.percentages.standing,
+        metrics.percentages.neutral,
+        metrics.percentages.sitting
+    ];
+
+    stateDonutChart.update('none');
+}
+
+
 
 async function getDeskHeight() {
     try {
@@ -203,6 +300,8 @@ async function getDeskHeight() {
         const heightCm = myDesk.position / 10;
 
         addLivePoint(heightCm);
+        updateDebugPanel();
+        updateStateDonut();
         lineChart.update('none');
 
     } catch (err) {
@@ -233,13 +332,17 @@ function createLegend(chart) {
 }
 
 
+
 // Start everything
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     updateCharts();
     initLineChart();
+    initStateDonutChart();
 
     createLegend(lineChart);
     lineChart.update();
+
+    await loadCurrentUserDesk();
 
     setInterval(getDeskHeight, 3000);
 });
