@@ -1,11 +1,9 @@
 let lineChart = null;
 let stateDonutChart = null;
-let MY_DESK_ID = null;
-
-
+let CURRENT_DESK_ID = null;
+let IS_ADMIN = false;
 
 // get desk of current user
-
 async function loadCurrentUserDesk() {
     const res = await fetch('/api/me');
     if (!res.ok) {
@@ -13,7 +11,61 @@ async function loadCurrentUserDesk() {
     }
 
     const user = await res.json();
-    MY_DESK_ID = user.desk_id;
+
+    CURRENT_DESK_ID = user.desk_id;
+    IS_ADMIN = user.is_admin;
+
+    if (IS_ADMIN) {
+        await initDeskSwitcher();
+    }
+}
+
+// function for the admin to choose desks for graphs
+
+async function initDeskSwitcher() {
+    const container = document.getElementById('deskSwitcherContainer');
+    const select = document.getElementById('deskSwitcher');
+
+    container.style.display = 'block';
+
+    const desks = await getDeskData();
+
+    select.innerHTML = '';
+
+    desks.forEach(desk => {
+        const option = document.createElement('option');
+        option.value = desk.id;
+        option.textContent = desk.name || desk.id;
+        select.appendChild(option);
+    });
+
+    // Default selection
+    select.value = CURRENT_DESK_ID;
+
+    select.addEventListener('change', () => {
+        switchDesk(select.value);
+    });
+}
+
+// ensures that data from previous selected desks dont remain on the graph
+function resetChartState() {
+    datasetsState.green.length = 0;
+    datasetsState.blue.length = 0;
+    datasetsState.red.length = 0;
+    datasetsState.transition.length = 0;
+
+    lastState = null;
+
+    lineChart.update();
+    updateStateDonut();
+    updateDebugPanel();
+}
+
+function switchDesk(newDeskId) {
+    if (newDeskId === CURRENT_DESK_ID) return;
+
+    CURRENT_DESK_ID = newDeskId;
+    resetChartState();
 }
 
 async function updateCharts() {
@@ -204,10 +256,6 @@ function initStateDonutChart() {
     });
 }
 
-
-
-//const MY_DESK_ID = '00:ec:eb:50:c2:c8'; // hard-coded desk
-
 // 2 following functions for point counting from graph
 function countValid(dataset) {
     let count = 0;
@@ -219,15 +267,41 @@ function countValid(dataset) {
     return count;
 }
 
-function updateDebugPanel() {
-    const standing = countValid(datasetsState.green);
-    const neutral = countValid(datasetsState.blue);
-    const sitting = countValid(datasetsState.red);
-    const trans = countValid(datasetsState.transition);
+function computeTimeMs(dataset) {
+    let time = 0;
 
-    document.getElementById('dbgStanding').textContent = standing;
-    document.getElementById('dbgSitting').textContent = sitting;
-    document.getElementById('dbgTransitions').textContent = trans;
+    for (let i = 1; i < dataset.length; i++) {
+        const prev = dataset[i - 1];
+        const curr = dataset[i];
+
+        if (
+            typeof prev.y === 'number' && !isNaN(prev.y) &&
+            typeof curr.y === 'number' && !isNaN(curr.y)
+        ) {
+            time += curr.x - prev.x;
+        }
+    }
+
+    return time;
+}
+
+function formatDuration(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}m ${seconds}s`;
+}
+
+function updateDebugPanel() {
+    const standingMs = computeTimeMs(datasetsState.green);
+    const neutralMs = computeTimeMs(datasetsState.blue);
+    const sittingMs = computeTimeMs(datasetsState.red);
+    const transMs = computeTimeMs(datasetsState.transition);
+
+    document.getElementById('dbgStanding').textContent = formatDuration(standingMs);
+    document.getElementById('dbgNeutral').textContent = formatDuration(neutralMs);
+    document.getElementById('dbgSitting').textContent = formatDuration(sittingMs);
+    document.getElementById('dbgTransitions').textContent = formatDuration(transMs);
 }
 
 
@@ -289,7 +363,7 @@ function updateStateDonut() {
 async function getDeskHeight() {
     try {
         const desks = await getDeskData();
-        const myDesk = desks.find(d => d.id === MY_DESK_ID);
+        const myDesk = desks.find(d => d.id === CURRENT_DESK_ID);
 
         if (!myDesk) {
             console.warn('My desk not found');

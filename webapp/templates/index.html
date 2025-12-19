@@ -13,8 +13,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
     <script src="/static/script.js"></script>
     <script src="/static/charts.js"></script>
-    <script src="/static/charts2.js" defer></script>
-    <script src="/static/charts3.js" defer></script>
     <script src="/static/deskcontrol.js"></script>
     <script src="/static/deskschedule.js"></script>
     <script src="https://kit.fontawesome.com/56dbcf3753.js" crossorigin="anonymous"></script>
@@ -85,6 +83,12 @@
         </template>
     </div>
     <div class="container">
+        <div class="deskSwitcher" id="deskSwitcherContainer" style="display:none;">
+            <label for="deskSwitcher">Desk:</label>
+            <select id="deskSwitcher"></select>
+        </div>
+    </div>
+    <div class="container">
         <div id="stats" class="stats-section">
             <h2>Statistics</h2>
             <div class="charts-grid">
@@ -96,7 +100,7 @@
                 </div>
                 <div class="chartCard3">
                     <div class="chartBox3">
-                        <div>Desk Position</div>
+                        <div>Desk Position in CM</div>
                         <div id="lineLegend" class="fixedLegend"></div>
 
                         <div class="container3">
@@ -109,20 +113,9 @@
 
             </div>
         </div>
-        <div id="debugPanel" style="
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 260px;
-    background: #111;
-    color: #0f0;
-    font-family: monospace;
-    font-size: 12px;
-    padding: 8px;
-    border-radius: 6px;
-    z-index: 9999;
-">
+        <div id="debugPanel">
             <div>Standing: <span id="dbgStanding">0</span></div>
+            <div>Neutral: <span id="dbgNeutral">0</span></div>
             <div>Sitting: <span id="dbgSitting">0</span></div>
             <div>Transitions: <span id="dbgTransitions">0</span></div>
         </div>
