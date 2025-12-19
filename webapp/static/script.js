@@ -144,8 +144,29 @@ function unlockDeskUI(id) {
 async function getDeskData() {
     const resp = await fetch(`/api/desks`);
     return await resp.json();
+    
 }
 
+async function getUserData() {
+    const resp = await fetch(`/api/userdata`, {method: "POST", headers: { "Content-Type": "application/json" }});
+    const data = await resp.json();
+    document.getElementById("presetHeightSit").value = data["presetSit"];
+    document.getElementById("presetHeightStand").value = data["presetStand"];
+}
+async function getUserData() {
+    const resp = await fetch(`/api/userdata`, {method: "POST", headers: { "Content-Type": "application/json" }});
+    const data = await resp.json();
+    document.getElementById("presetHeightSit").value = data["presetSit"];
+    document.getElementById("presetHeightStand").value = data["presetStand"];
+}
+async function setUserData() {
+    await fetch(`/api/userdataupdate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presetSit: document.getElementById("presetHeightSit").value, presetStand: document.getElementById("presetHeightStand").value})
+    });
+    getUserData();
+}
 async function fetchDesks(desksData) {
     if (!desksData) desksData = await getDeskData();
     desks = desksData;
@@ -195,6 +216,18 @@ async function fetchDesks(desksData) {
                 }
             }
 
+            // Button handlers
+            card.querySelector('.btn-up').onclick = () => lockedAction(d.id, () => move(d.id, 'up'));
+            card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => setHeight(d.id, 'down'));
+            card.querySelector('.btn-sit').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "sit"));
+            card.querySelector('.btn-stand').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "stand"));
+            card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
+            card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
+            // Lock button is visible but non-functional for now
+            card.querySelector('.lock-btn').onclick = null;
+            card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
+
+            // Inputs
             // Assign IDs to inputs/buttons
             card.querySelector('.height-input').id = `height_${d.id}`;
             card.querySelector('.hour-input').id = `hour_${d.id}`;

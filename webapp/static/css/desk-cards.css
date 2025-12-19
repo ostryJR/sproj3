@@ -101,18 +101,18 @@
     margin-bottom: 8px;
 }
 .btn-full { width: 100%; }
-.btn-up {
+.btn-up, .btn-sit {
     background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
     color: white;
 }
-.btn-up:hover {
+.btn-up:hover, .btn-sit:hover {
     background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
 }
-.btn-down {
+.btn-down, .btn-stand{
     background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
     color: white;
 }
-.btn-down:hover {
+.btn-down:hover, .btn-stand:hover {
     background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
 }
 .btn-stop {

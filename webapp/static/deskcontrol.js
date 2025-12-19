@@ -54,6 +54,27 @@ async function setHeight(id) {
     }
 }
 
+async function goToPreset(id, preset) {
+    try {
+        for (let i = 0; i < 5; i++) {
+            const resp = await fetch(`/api/desks/${id}/set`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ height: preset=="sit" ? document.getElementById("presetHeightSit").value : document.getElementById("presetHeightStand").value }) });
+            if (!resp.ok) {
+                const text = await resp.text();
+                alert(`Error setting height: ${resp.status} ${text}`);
+                break;
+            }
+            await new Promise(res => setTimeout(res, 1000));
+        }
+        await fetchDesks();
+    } catch (e) {
+        alert("Failed to set height: " + e);
+    }
+
+    await new Promise(res => setTimeout(res, 1000));
+    await fetchDesks();
+
+}
+
 // toggleLock is implemented in script.js with server enforcement.
 
 function toggleLockUIOnly(id) {

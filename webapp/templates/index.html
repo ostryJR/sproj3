@@ -23,18 +23,33 @@
     <header class="main-header">
         <div class="header-content">
             <h1>Desk Controller</h1>
-            <a href="/logout" class="logout-btn">Logout</a>
+            <div>
+            <div id="clock" class="clock"></div>
+            <a href="/logout" class="logout-btn">Logout</a><div>
         </div>
-        <div id="clock" class="clock"></div>
     </header>
     <div class="container">
         <div class="all-desks-control">
             <h2>Control All Desks</h2>
+            <center>
             <div class="control-group">
                 <input type="number" id="height_all" placeholder="Height (mm)" step="10">
                 <button class="btn-primary" onclick="setHeightAll()">Set All</button>
                 <button id="lock_all" class="btn-secondary" onclick="toggleLockAll()">Lock All</button>
             </div>
+            <div class="control-group">
+                <label class="control-label">Preset Height Sit</label>
+                <div class="input-group">
+                    <input id="presetHeightSit" type="number" class="height-input" placeholder="mm">
+                    <button class="btn-set-preset-sit" onclick="setUserData()">Set</button>
+                </div>
+                <label class="control-label">Preset Height Stand</label>
+                <div class="input-group">
+                    <input id="presetHeightStand" type="number" class="height-input" placeholder="mm">
+                    <button class="btn-set-preset-stand" onclick="setUserData()">Set</button>
+                </div>
+            </div>
+        </center>
         </div>
     </div>
     <div class="container">
@@ -57,6 +72,10 @@
                             <button class="btn-up">Up</button>
                             <button class="btn-down">Down</button>
                         </div>
+                        <label class="control-label">Presets</label>
+                        <div class="button-group">
+                            <button class="btn-sit">Sit</button>
+                            <button class="btn-stand">Stand</button>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Set Height</label>
@@ -138,6 +157,7 @@
         setInterval(updatePage, 5000); // update page every 5s
         updateClock();
         setInterval(updateClock, 1000);
+        getUserData();
     </script>
 </body>
 
