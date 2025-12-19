@@ -222,7 +222,24 @@ async def desk_down(desk_id: str, request: Request):
 async def set_height(desk_id: str, request: Request):
     data = await request.json()
     target = int(data.get("height", 680))
-    resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
+    preset = data.get("preset", None)
+    if preset==None:
+        resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
+    else:
+        user = request.session.get("user")['username']
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT presetSit, presetStand FROM users WHERE username = ?", (user,))
+        presets = c.fetchone()
+        conn.close()
+        if preset=='sit':
+            target = int(presets["presetSit"])
+            print("sittin")
+        else:
+            target = int(presets["presetStand"])
+            print("standin")
+        resp = requests.put(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}/state", json={"position_mm": target})
+        print(F'AAAAAAAAAAAAAAAAAAAAAAAA {presets["presetSit"]}')
     return JSONResponse(resp.json())
 
 @app.post("/api/desks/{desk_id}/schedule")

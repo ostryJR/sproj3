@@ -21,9 +21,10 @@
     <header class="main-header">
         <div class="header-content">
             <h1>Desk Controller</h1>
-            <a href="/logout" class="logout-btn">Logout</a>
+            <div>
+            <div id="clock" class="clock"></div>
+            <a href="/logout" class="logout-btn">Logout</a><div>
         </div>
-        <div id="clock" class="clock"></div>
     </header>
     <div class="container">
         <div class="all-desks-control">
@@ -55,6 +56,10 @@
                             <button class="btn-up">Up</button>
                             <button class="btn-down">Down</button>
                         </div>
+                        <label class="control-label">Presets</label>
+                        <div class="button-group">
+                            <button class="btn-sit">Sit</button>
+                            <button class="btn-stand">Stand</button>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Set Height</label>

@@ -79,7 +79,9 @@ async function fetchDesks(desks) {
 
             // Button handlers
             card.querySelector('.btn-up').onclick = () => lockedAction(d.id, () => move(d.id, 'up'));
-            card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => move(d.id, 'down'));
+            card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => setHeight(d.id, 'down'));
+            card.querySelector('.btn-sit').onclick = () => lockedAction(d.id, () => goToPreset(d.id, 'sit'));
+            card.querySelector('.btn-stand').onclick = () => lockedAction(d.id, () => goToPreset(d.id, 'stand'));
             card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
             card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
             // Lock button is visible but non-functional for now

@@ -14,7 +14,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
+            password_hash TEXT NOT NULL,
+            presetStand INTEGER NOT NULL,
+            presetSit INTEGER NOT NULL
         )
     ''')
 
@@ -25,6 +27,11 @@ def init_db():
         pass
     try:
         c.execute('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute('ALTER TABLE users ADD COLUMN presetStand INTEGER DEFAULT 680')
+        c.execute('ALTER TABLE users ADD COLUMN presetSit INTEGER DEFAULT 1100')
     except sqlite3.OperationalError:
         pass
 
@@ -56,7 +63,7 @@ def init_db():
     for user in users:
         try:
             c.execute(
-                "INSERT INTO users (username, password_hash, desk_id, is_admin) VALUES (?, ?, ?, ?)",
+                "INSERT INTO users (username, password_hash, desk_id, is_admin, presetStand, presetSit) VALUES (?, ?, ?, ?, 680, 1100)",
                 (user["username"], pbkdf2_sha256.hash(user["password"]), user["desk_id"], user["is_admin"])
             )
         except sqlite3.IntegrityError:

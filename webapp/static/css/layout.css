@@ -34,18 +34,31 @@
     font-weight: 600;
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    float:left;
 }
 .logout-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 .clock {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    float:left;
+    margin-right:10px;
+}
+/* .clock {
     font-size: 1.2em;
     text-align: center;
     color: #555;
     margin-top: 10px;
     font-weight: 500;
-}
+} */
 /* All Desks Control */
 .all-desks-control {
     background: white;
