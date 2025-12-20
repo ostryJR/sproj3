@@ -2,10 +2,18 @@ import os
 import sys
 import json
 import pytest
+import importlib
+import types
 
-# Ensure importing main.py works, where it uses sibling imports like `import func`
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'webapp'))
-import main as webapp_main  # noqa: E402
+_dummy_main = types.ModuleType("main")
+_dummy_main.SIMULATOR_URL = "http://127.0.0.1:8001"
+_dummy_main.API_KEY = "DUMMY"
+sys.modules["main"] = _dummy_main
+
+for _name in ["models", "crud", "func", "db", "setup_db", "init_user_db", "sync_desks_continuous"]:
+    sys.modules[_name] = importlib.import_module(f"webapp.{_name}")
+
+import webapp.main as webapp_main
 
 class FakeResp:
     def __init__(self, payload=None):
