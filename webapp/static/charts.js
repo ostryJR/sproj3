@@ -3,7 +3,6 @@ let stateDonutChart = null;
 let CURRENT_DESK_ID = null;
 let IS_ADMIN = false;
 
-// get desk of current user
 async function loadCurrentUserDesk() {
     const res = await fetch('/api/me');
     if (!res.ok) {
@@ -19,8 +18,6 @@ async function loadCurrentUserDesk() {
         await initDeskSwitcher();
     }
 }
-
-// function for the admin to choose desks for graphs
 
 async function initDeskSwitcher() {
     const container = document.getElementById('deskSwitcherContainer');
@@ -39,7 +36,6 @@ async function initDeskSwitcher() {
         select.appendChild(option);
     });
 
-    // Default selection
     select.value = CURRENT_DESK_ID;
 
     select.addEventListener('change', () => {
@@ -47,7 +43,6 @@ async function initDeskSwitcher() {
     });
 }
 
-// ensures that data from previous selected desks dont remain on the graph
 function resetChartState() {
     datasetsState.green.length = 0;
     datasetsState.blue.length = 0;
@@ -77,8 +72,6 @@ async function updateCharts() {
             errorsDict[error.errorCode] = (errorsDict[error.errorCode] || 0) + 1;
         }
     }
-    // console.log("errors");
-    // console.log(errorsDict);
 
     const ctx = document.getElementById('myChart');
     new Chart(ctx, {
@@ -121,18 +114,15 @@ function addLivePoint(height) {
 
     const { green, blue, red, transition } = datasetsState;
 
-    // Every color exists, this ensures that a point exists only if it has a y value, otherwise it's not deifined, thus not shown
     green.push({ x: now, y: NaN });
     blue.push({ x: now, y: NaN });
     red.push({ x: now, y: NaN });
     transition.push({ x: now, y: NaN });
 
-    // Assign current value to exactly one dataset
     if (state === 'STANDING') green.at(-1).y = height;
     else if (state === 'NEUTRAL') blue.at(-1).y = height;
     else red.at(-1).y = height;
 
-    // Transition
     if (lastState !== null && lastState !== state) {
         transition.at(-1).y = height;
     }
@@ -155,8 +145,6 @@ function addLivePoint(height) {
 
 }
 
-
-// line chart
 
 function initLineChart() {
 
@@ -223,15 +211,13 @@ function initLineChart() {
                     },
                     ticks: {
                         autoSkip: false,
-                        /*maxTicksLimit: 10*/
+                        
                     }
                 }
             }
         }
     });
 }
-
-//donut chart
 
 function initStateDonutChart() {
     const ctx = document.getElementById('myChart2');
@@ -256,7 +242,6 @@ function initStateDonutChart() {
     });
 }
 
-// 2 following functions for point counting from graph
 function countValid(dataset) {
     let count = 0;
     for (const p of dataset) {
@@ -305,8 +290,6 @@ function updateDebugPanel() {
 }
 
 
-
-// function for percentages
 
 function getStateMetrics() {
     const standing = countValid(datasetsState.green);
@@ -369,7 +352,6 @@ async function getDeskHeight() {
         }
         const myDesk = desks.find(d => d.id === CURRENT_DESK_ID) || desks[0];
 
-        //  mm -> convert to cm
         const heightCm = myDesk.position / 10;
 
         addLivePoint(heightCm);
@@ -406,7 +388,6 @@ function createLegend(chart) {
 
 
 
-// Start everything
 document.addEventListener('DOMContentLoaded', async () => {
     updateCharts();
     initLineChart();

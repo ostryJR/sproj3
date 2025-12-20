@@ -1,8 +1,3 @@
-// -------------------------
-// Desk Lock and Control JS
-// -------------------------
-
-
 window.actionLocks = window.actionLocks || {};
 window.adminLocks = window.adminLocks || {};
 function lockDesk(id) { window.actionLocks[id] = true; }
@@ -26,13 +21,9 @@ async function lockedAction(id, action) {
         unlockDesk(id);
     }
 }
-// Simple UI lock-all flag (no intervals)
 window.lockAll = false;
 var desks = [];
 
-// -------------------------
-// Clock Update
-// -------------------------
 function updateClock() {
     const now = new Date();
     const pad = n => n.toString().padStart(2, '0');
@@ -40,9 +31,6 @@ function updateClock() {
     document.getElementById('clock').textContent = str;
 }
 
-// -------------------------
-// Popup Helper
-// -------------------------
 function showPopup(message) {
     const popupContainer = document.getElementById("system-popups");
     const popup = document.createElement("div");
@@ -52,9 +40,6 @@ function showPopup(message) {
     setTimeout(() => popup.remove(), 3000); // auto remove after 3s
 }
 
-// -------------------------
-// Favorite helpers
-// -------------------------
 async function updateFavoriteLabel(deskId) {
     try {
         const r = await fetch(`/api/desks/${deskId}/favorite`);
@@ -71,9 +56,6 @@ async function updateFavoriteLabel(deskId) {
     }
 }
 
-// -------------------------
-// Lock/Unlock Desk
-// -------------------------
 async function toggleLock(id) {
     // Admin lock: prevents non-admin users from performing actions on this desk
     const card = document.getElementById(`desk_card_${id}`);
@@ -111,9 +93,6 @@ async function toggleLock(id) {
     }
 }
 
-// -------------------------
-// Lock/Unlock All Desks
-// -------------------------
 function toggleLockAll() {
     const btn = document.getElementById('lock_all');
     if (!window.lockAll) {
@@ -139,9 +118,6 @@ function toggleLockAll() {
     }
 }
 
-// -------------------------
-// Helper to lock a desk UI
-// -------------------------
 function lockDeskUI(id) {
     const card = document.getElementById(`desk_card_${id}`);
     if (!card) return;
@@ -153,9 +129,6 @@ function lockDeskUI(id) {
     card.querySelector(".lock-btn").textContent = "Unlock Desk";
 }
 
-// -------------------------
-// Helper to unlock a desk UI
-// -------------------------
 function unlockDeskUI(id) {
     const card = document.getElementById(`desk_card_${id}`);
     if (!card) return;
@@ -165,21 +138,12 @@ function unlockDeskUI(id) {
     card.querySelector(".lock-btn").textContent = "Lock Desk";
 }
 
-// -------------------------
-// Fetch & Render Desks
-// -------------------------
 async function getDeskData() {
     const resp = await fetch(`/api/desks`);
     return await resp.json();
     
 }
 
-async function getUserData() {
-    const resp = await fetch(`/api/userdata`, {method: "POST", headers: { "Content-Type": "application/json" }});
-    const data = await resp.json();
-    document.getElementById("presetHeightSit").value = data["presetSit"];
-    document.getElementById("presetHeightStand").value = data["presetStand"];
-}
 async function getUserData() {
     const resp = await fetch(`/api/userdata`, {method: "POST", headers: { "Content-Type": "application/json" }});
     const data = await resp.json();

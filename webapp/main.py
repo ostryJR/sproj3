@@ -17,10 +17,7 @@ from init_user_db import init_db
 # Import the sync function
 from sync_desks_continuous import safe_sync_desks_to_db
 init_db()
-from apscheduler.schedulers.background import BackgroundScheduler
-# -----------------------
 # Database setup for SQLite
-# -----------------------
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -35,9 +32,7 @@ else:
     print("Desk table already exists. Skipping creation.")
 
 
-# -----------------------
 # API / Simulator config
-# -----------------------
 SIMULATOR_URL = "http://127.0.0.1:8001"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 API_KEYS_FILE = os.path.join(BASE_DIR, '..', 'config', 'api_keys.json')
@@ -50,9 +45,7 @@ def load_api_key():
 API_KEY = load_api_key()
 
 
-# -----------------------
 # FastAPI app + Middleware
-# -----------------------
 app = FastAPI(title="Desk Controller Web App")
 
 app.add_middleware(
@@ -65,27 +58,20 @@ app.add_middleware(
 app.add_middleware(SessionMiddleware, secret_key="secretkey")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, 'static')), name="static")
 
-# -----------------------
 # Scheduler setup
-# -----------------------
 scheduler = BackgroundScheduler()
 schedulerForDailySchedule = BackgroundScheduler()
 
-# -----------------------
-# -----------------------
 ADMIN_LOCKS = set()
 FROZEN_DESKS = {}
 ADMIN_LOCK_ALL = False
 
-# -----------------------
 # FastAPI startup event
-# -----------------------
 @app.on_event("startup")
 def startup_event():
     scheduler.start()
     schedulerForDailySchedule.start()
 
-    # Pass the scheduler and API info to func.schedule
     func.schedule(
         scheduler=schedulerForDailySchedule,
         simulator_url=SIMULATOR_URL,
@@ -101,7 +87,6 @@ def startup_event():
         args=[schedulerForDailySchedule, SIMULATOR_URL, API_KEY]
     )
 
-    # Continuous desk sync every 10 seconds
     scheduler.add_job(
         safe_sync_desks_to_db,
         'interval',
@@ -110,7 +95,6 @@ def startup_event():
         replace_existing=True
     )
 
-    # Enforce frozen desks every second
     def enforce_freeze_job():
         for desk_id, height in list(FROZEN_DESKS.items()):
             try:
@@ -128,18 +112,14 @@ def startup_event():
     print("Schedulers started and jobs scheduled.")
 
 
-# -----------------------
 # User / Login dependencies
-# -----------------------
 def get_current_user(request: Request):
     user = request.session.get("user")
     if not user:
         raise Exception("Not authenticated")
     return user
 
-# -----------------------
 # Routes
-# -----------------------
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     if not request.session.get("user"):
@@ -175,9 +155,7 @@ def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/login", status_code=302)
 
-# -----------------------
 # Desk API endpoints
-# -----------------------
 @app.get("/api/desks")
 def list_desks(request: Request):
     user = request.session.get("user")
@@ -323,7 +301,6 @@ async def schedule_move(desk_id: str, request: Request):
     scheduler.add_job(job, 'cron', hour=hour, minute=minute, id=job_id, replace_existing=True, args=[target])
     return {"scheduled": True, "desk_id": desk_id, "height": target, "time": f"{hour:02d}:{minute:02d}"}
 
-# Unfreeze endpoint (optional)
 @app.post("/api/desks/{desk_id}/unfreeze")
 def unfreeze_desk(desk_id: str, request: Request):
     user = request.session.get("user")
@@ -335,7 +312,6 @@ def unfreeze_desk(desk_id: str, request: Request):
     FROZEN_DESKS.pop(desk_id, None)
     return JSONResponse({"unfrozen": True, "desk_id": desk_id})
 
-# Lock/Unlock all desks (admin only)
 @app.post("/api/desks/admin_lock_all")
 def admin_lock_all(request: Request):
     user = request.session.get("user")
@@ -358,9 +334,7 @@ def admin_unlock_all(request: Request):
     ADMIN_LOCK_ALL = False
     return JSONResponse({"locked_all": False})
 
-# -----------------------
-# Favorite height (simple per-user, per-desk)
-# -----------------------
+# Favorite height (per-user, per-desk)
 @app.post("/api/desks/{desk_id}/favorite/save")
 async def save_favorite(desk_id: str, request: Request):
     user = request.session.get("user")
@@ -420,7 +394,6 @@ def get_favorite(desk_id: str, request: Request):
     return JSONResponse({"favorite": int(fav), "desk_id": desk_id})
 
 
-# Get schedule endpoint remains unchanged
 @app.post("/api/desks/get_schedule")
 async def get_schedule(request: Request):
     data = await request.json()
@@ -464,9 +437,6 @@ async def get_schedule(request: Request):
         except Exception as e:
             print(f"Error parsing job {job.id}: {e}")
             continue
-    
-    
-    
     with open('scheduleconfig.json', 'r') as file:
         times = json.load(file)
     for time in times:
@@ -481,15 +451,10 @@ async def get_schedule(request: Request):
             "next_run_time": -1,#probably should be changed
             "height": str(height)
         })
-    
-    
-    
-    # print(f'{scheduler.get_jobs()}')
     return {"schedule": schedule_data}
 
 @app.post("/api/userdata")
 async def userdata(request: Request):
-    # data = await request.json()
     user = request.session.get("user")['username']
     conn = get_db()
     c = conn.cursor()
@@ -511,15 +476,9 @@ async def userdata(request: Request):
     
     preSit = data.get("presetSit")
     preStand = data.get("presetStand")
-    if data != None:
+    if data is not None:
         c.execute("UPDATE users SET presetSit= ? , presetStand= ?  WHERE username = ? ;", (preSit,preStand,user,))
         conn.commit()
     conn.close()
     return HTMLResponse(status_code=200)
-    
-    
-
-
-#run scheduler so that the day schedule for desks is loaded at 00:00
-func.schedule(scheduler, SIMULATOR_URL, API_KEY)
-schedulerForDailySchedule.add_job(func.schedule, 'cron', hour=0, minute=0, args=[schedulerForDailySchedule, SIMULATOR_URL, API_KEY])
+ 

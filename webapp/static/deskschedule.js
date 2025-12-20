@@ -9,16 +9,12 @@ async function schedule(id) {
 async function getSchedule(desk_id) {
     const resp = await fetch(`/api/desks/get_schedule`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ desk_id: desk_id }) });
     const data = await resp.json();
-    // console.log(data);
     return data;
 }
 
 async function updateSchedule(desks) {
-    console.log("Updating schedule...");
     const { schedule } = await getSchedule("all");
     const desksdata = await getDeskData();
-    console.log(desksdata);
-    console.log(schedule);
 
     const container = document.getElementById("schedule");
     container.innerHTML = `

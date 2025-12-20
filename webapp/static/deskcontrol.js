@@ -74,9 +74,6 @@ async function goToPreset(id, preset) {
     await fetchDesks();
 
 }
-
-// toggleLock is implemented in script.js with server enforcement.
-
 function toggleLockUIOnly(id) {
     const card = document.getElementById(`desk_card_${id}`);
     const btn = card?.querySelector(".lock-btn");
