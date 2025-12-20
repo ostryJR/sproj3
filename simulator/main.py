@@ -27,9 +27,10 @@ def generate_desk_id():
 def generate_desk_name():
     return f"DESK {random.randint(1000, 9999)}"
 
-def run(server_class=HTTPServer, handler_class=SimpleRESTServer, port=8000, use_https=False, cert_file=None, key_file=None, desks=2, speed=60):
-    logger.info(f"Initializing DeskManager with simulation speed: {speed}")
-    desk_manager = DeskManager(speed)
+def run(server_class=HTTPServer, handler_class=SimpleRESTServer, port=8000, use_https=False, cert_file=None, key_file=None, 
+        desks=2, speed=60, no_user_simulation=False, collision_chance=3, poweroff_chance=3):
+    logger.info(f"Initializing DeskManager with simulation speed: {speed}, collision chance: {collision_chance}%, poweroff chance: {poweroff_chance}%")
+    desk_manager = DeskManager(speed, collision_chance / 100.0, poweroff_chance / 100.0)
 
     logger.info("Adding default desks...")
     desk_manager.add_desk("cd:fb:1a:53:fb:e6", "DESK 4486", "Desk-O-Matic Co.", UserType.ACTIVE)
@@ -40,11 +41,10 @@ def run(server_class=HTTPServer, handler_class=SimpleRESTServer, port=8000, use_
         for i in range(desks - len(desk_manager.get_desk_ids())):
             desk_manager.add_desk(generate_desk_id(), generate_desk_name(), "Desk-O-Matic Co.", UserType.ACTIVE)
 
-    desk_manager.start_updates()
+    desk_manager.start_updates(no_user_simulation)
 
     def handler(*args, **kwargs):
         handler_class(desk_manager, *args, **kwargs)
-
     server_address = ("0.0.0.0", port)
     SimpleRESTServer.initialize_api_keys()
     httpd = server_class(server_address, handler)
@@ -88,6 +88,9 @@ if __name__ == "__main__":
     parser.add_argument("--desks", type=int, default=2, help="Minimum number of desks to simulate (default: 2)")
     parser.add_argument("--speed", type=int, default=60, help="Simulation speed (default: 60)")
     parser.add_argument("--log-level", type=str, default="INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
+    parser.add_argument("--no-user-simulation", action="store_true", help="Disable simulated user interactions")
+    parser.add_argument("--desk-collision-chance", type=int, default=3, help="Collision probability in percent (default: 3)")
+    parser.add_argument("--desk-poweroff-chance", type=int, default=3, help="Chance in percent that a powered-on desk will power off on each check (default: 3)")
 
     args = parser.parse_args()
 
@@ -109,5 +112,8 @@ if __name__ == "__main__":
         cert_file=args.certfile,
         key_file=args.keyfile,
         desks=args.desks,
-        speed=args.speed
+        speed=args.speed,
+        no_user_simulation=args.no_user_simulation,
+        collision_chance=args.desk_collision_chance,
+        poweroff_chance=args.desk_poweroff_chance,
     )

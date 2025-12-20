@@ -7,11 +7,11 @@ logger = logging.getLogger(__name__)
 
 class Desk:
     DEFAULT_SPEED_MMS = 32
-    COLLISION_CHANCE = 0.03
     MAX_ERROR_COUNT = 10
     ERROR_CODE_E93 = 93
 
-    def __init__(self, desk_id, name, manufacturer, initial_position=680, min_position=680, max_position=1320):
+    def __init__(self, desk_id, name, manufacturer, initial_position=680, min_position=680, max_position=1320, 
+                 collision_chance=0.03):
         self.desk_id = desk_id
         self.config = {
             "name": name,
@@ -40,6 +40,7 @@ class Desk:
         self.sit_stand_position = (max_position - min_position) / 2 + min_position
         self.clock_s = 180
         self.collision_occurred = False
+        self.collision_chance = collision_chance
 
         logger.info(f"Desk initialized: ID={desk_id}, Name={name}, Manufacturer={manufacturer}, "
             f"Position={initial_position}, Min={min_position}, Max={max_position}")
@@ -111,7 +112,7 @@ class Desk:
                     self.state["isAntiCollision"] = False
                     self.state["status"] = "Normal"
                     logger.info(f"Desk reset from collision: ID={self.desk_id}, Time={self.clock_s}, Position={self.state['position_mm']}")
-                elif random.random() < self.COLLISION_CHANCE:
+                elif random.random() < self.collision_chance:
                     self._generate_error()
                     if self.state["speed_mms"] > 0:
                         self.state["position_mm"] = max(self.state["position_mm"] - 10, self.min_position)
