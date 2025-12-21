@@ -124,13 +124,13 @@ def get_current_user(request: Request):
 def index(request: Request):
     if not request.session.get("user"):
         return RedirectResponse("/login", status_code=302)
-    template_path = os.path.join(BASE_DIR, 'templates', 'index.html')
+    template_path = os.path.join(BASE_DIR, 'HTML', 'Desk.html')
     with open(template_path, "r") as f:
         return HTMLResponse(f.read())
     
 @app.get("/login", response_class=HTMLResponse)
 def login_page():
-    template_path = os.path.join(BASE_DIR, 'templates', 'login.html')
+    template_path = os.path.join(BASE_DIR, 'HTML', 'login.html')
     with open(template_path, "r") as f:
         return HTMLResponse(f.read())
 
