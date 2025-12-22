@@ -1,0 +1,45 @@
+python-multipart   # For handling form data (needed for login/register forms)
+passlib[bcrypt]    # Password hashing library (we now use pbkdf2_sha256, but bcrypt is also there)
+itsdangerous
+(pip install) sqlalchemy
+
+==============================
+How to set up and run everything
+==============================
+
+1. Install dependencies (from webapp directory):
+	You need Python 3.9+.
+	Install required packages:
+   
+	pip install fastapi uvicorn apscheduler python-multipart passlib[bcrypt] itsdangerous sqlalchemy requests starlette
+
+2. Start the Desk Simulator API:
+	From the project root, run:
+   
+	python simulator/main.py --port 8001
+   
+	(You can change the port or add options, see README.md for details)
+
+3. Initialize the user database (optional,if its not already there and only first time):
+	From the webapp directory, run:
+   
+	python init_user_db.py
+
+4. Start the web application:
+	From the webapp directory, run:
+   
+	uvicorn main:app --reload --port 8080
+
+	The web interface will be available at http://127.0.0.1:8080
+
+5. Log in:
+	Default users are auto-created for each desk (see logins.txt or init_user_db.py for details), and an admin user:
+	- Username: admin
+	- Password: adminpass
+
+6. The webapp will connect to the simulator API at http://127.0.0.1:8001 by default.
+
+7.. To change scheduled desk movements, edit scheduleconfig.json in the webapp directory.
+
+---
+If you have issues, check the console output for errors.
