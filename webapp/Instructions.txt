@@ -1,7 +1,3 @@
-python-multipart   # For handling form data (needed for login/register forms)
-passlib[bcrypt]    # Password hashing library (we now use pbkdf2_sha256, but bcrypt is also there)
-itsdangerous
-(pip install) sqlalchemy
 
 ==============================
 How to set up and run everything
