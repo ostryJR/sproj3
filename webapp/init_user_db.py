@@ -18,7 +18,6 @@ def init_db():
         )
     ''')
 
-    # Try to add columns if they don't exist
     try:
         c.execute('ALTER TABLE users ADD COLUMN desk_id TEXT')
     except sqlite3.OperationalError:
@@ -32,7 +31,6 @@ def init_db():
         c.execute('ALTER TABLE users ADD COLUMN presetSit INTEGER DEFAULT 1100')
     except sqlite3.OperationalError:
         pass
-    # Favorite height per user
     try:
         c.execute('ALTER TABLE users ADD COLUMN favorite_height INTEGER')
     except sqlite3.OperationalError:
@@ -70,7 +68,7 @@ def init_db():
                 (user["username"], pbkdf2_sha256.hash(user["password"]), user["desk_id"], user["is_admin"])
             )
         except sqlite3.IntegrityError:
-            pass  # User already exists
+            pass  
     conn.commit()
     conn.close()
 

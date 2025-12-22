@@ -1,4 +1,3 @@
-# webapp/sync_desks_continuous.py
 
 import time
 from datetime import datetime
@@ -36,7 +35,7 @@ def sync_desks_to_db(*args, **kwargs):
                 },
             )
 
-            # Print confirmation with timestamp
+            
             print(
                 f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] "
                 f"Updated desk {desk_id} in database."

@@ -14,7 +14,6 @@ import func
 from db import engine, DB_PATH
 from setup_db import initialize_db
 from init_user_db import init_db
-# Import the sync function
 from sync_desks_continuous import safe_sync_desks_to_db
 init_db()
 # Database setup for SQLite
@@ -44,8 +43,6 @@ def load_api_key():
 
 API_KEY = load_api_key()
 
-
-# FastAPI app + Middleware
 app = FastAPI(title="Desk Controller Web App")
 
 app.add_middleware(
@@ -174,7 +171,6 @@ def list_desks(request: Request):
         status = desk_data.get("state", {}).get("status", "Normal")
         last_errors = desk_data.get("lastErrors", []) or []
 
-        # include the error code 
         current_error = None
         if status != "Normal" and len(last_errors) > 0:
             latest = last_errors[0]
@@ -209,9 +205,7 @@ def get_me(request: Request):
     }
   
 
-# -----------------------
 # Admin lock endpoints
-# -----------------------
 @app.post("/api/desks/{desk_id}/admin_lock")
 def admin_lock_desk(desk_id: str, request: Request):
     user = request.session.get("user")
@@ -306,7 +300,6 @@ def unfreeze_desk(desk_id: str, request: Request):
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    # Allow only admins to unfreeze explicitly
     if not user.get("is_admin"):
         return JSONResponse({"error": "Forbidden"}, status_code=403)
     FROZEN_DESKS.pop(desk_id, None)
@@ -334,19 +327,17 @@ def admin_unlock_all(request: Request):
     ADMIN_LOCK_ALL = False
     return JSONResponse({"locked_all": False})
 
-# Favorite height (per-user, per-desk)
+# Favorite height (per-user)
 @app.post("/api/desks/{desk_id}/favorite/save")
 async def save_favorite(desk_id: str, request: Request):
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    # Always read current height from simulator for simplicity
     try:
         desk_resp = requests.get(f"{SIMULATOR_URL}/api/v2/{API_KEY}/desks/{desk_id}")
         height = int(desk_resp.json().get("state", {}).get("position_mm", 0))
     except Exception:
         height = 0
-    # Persist in users table
     conn = get_db()
     c = conn.cursor()
     c.execute("UPDATE users SET favorite_height = ? WHERE username = ?", (int(height), user["username"]))
@@ -359,10 +350,8 @@ async def go_favorite(desk_id: str, request: Request):
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    # Respect locks for non-admin users
     if (desk_id in ADMIN_LOCKS or ADMIN_LOCK_ALL) and not user.get("is_admin"):
         return JSONResponse({"error": "Desk is admin-locked"}, status_code=403)
-    # Read from users table
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT favorite_height FROM users WHERE username = ?", (user["username"],))
@@ -444,11 +433,11 @@ async def get_schedule(request: Request):
         minute = int(time['time'].split(':')[1])
         height = int(time['height'])
         schedule_data.append({
-            "job_id": -1,#probably should be changed
+            "job_id": -1,
             "desk_id": "All",
             "hour": int(hour),
             "minute": int(minute),
-            "next_run_time": -1,#probably should be changed
+            "next_run_time": -1,
             "height": str(height)
         })
     return {"schedule": schedule_data}

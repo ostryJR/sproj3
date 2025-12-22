@@ -3,7 +3,6 @@ import webapp.func as func
 
 def test_job_set_height_performance(monkeypatch):
     """Performance test: job() should set desk height up and down quickly."""
-    # Prepare a dummy requests.put to avoid real HTTP calls
     call_log = []
     def fake_put(url, json=None, **kwargs):
         call_log.append((url, json))

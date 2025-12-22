@@ -1,6 +1,6 @@
 # setup_db.py
 from db import engine, Base
-from models.desk import Desk  # import Desk model
+from models.desk import Desk  
 
 def initialize_db():
     """

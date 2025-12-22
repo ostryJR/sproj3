@@ -3,7 +3,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Use a user-local directory for the DB to avoid git changes
 def get_default_db_path():
 	local_app_data = os.getenv('LOCALAPPDATA')
 	if local_app_data:
