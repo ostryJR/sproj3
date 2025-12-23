@@ -1,3 +1,7 @@
+username: password
+
+
+admin: adminpass
 user1a: pass1a
 user1b: pass1b
 user2a: pass2a
@@ -30,4 +34,3 @@ user15a: pass15a
 user15b: pass15b
 user16a: pass16a
 user16b: pass16b
-admin: adminpass

@@ -3,8 +3,8 @@ window.adminLocks = window.adminLocks || {};
 function lockDesk(id) { window.actionLocks[id] = true; }
 function unlockDesk(id) { delete window.actionLocks[id]; }
 
+// Block if admin-locked and current user is not admin
 async function lockedAction(id, action) {
-    // Block if admin-locked and current user is not admin
     const d = Array.isArray(desks) ? desks.find(x => String(x.id) === String(id)) : null;
     const isAdminUser = d && !!d.is_admin;
     if (window.adminLocks && window.adminLocks[id] && !isAdminUser) {
@@ -13,9 +13,8 @@ async function lockedAction(id, action) {
     }
     if (window.actionLocks && window.actionLocks[id]) return; // prevent concurrent actions
     lockDesk(id);
-    try {
+    try {s
         await action();
-        // simple: refresh UI
         await fetchDesks();
     } finally {
         unlockDesk(id);
@@ -56,8 +55,8 @@ async function updateFavoriteLabel(deskId) {
     }
 }
 
+ // Admin lock: prevents non-admin users from performing actions on this desk
 async function toggleLock(id) {
-    // Admin lock: prevents non-admin users from performing actions on this desk
     const card = document.getElementById(`desk_card_${id}`);
     const btn = card?.querySelector(".lock-btn");
     if (!card || !btn) return;
@@ -171,7 +170,7 @@ async function fetchDesks(desksData) {
     if (allControls) {
         allControls.style.display = isAdmin ? '' : 'none';
     }
-    // If a non-admin somehow has lockAll running, stop it when hiding controls
+
     if (!isAdmin && window.lockAll) {
         window.lockAll = false;
         const lockBtn = document.getElementById('lock_all');
@@ -200,23 +199,12 @@ async function fetchDesks(desksData) {
                     errorDivInit.classList.remove('no-error');
                     errorDivInit.textContent = text;
                 } else {
-                    // Show No current error by default
                     errorDivInit.style.display = 'block';
                     errorDivInit.classList.add('no-error');
                     errorDivInit.textContent = 'No current error';
                 }
             }
 
-            // Button handlers
-            card.querySelector('.btn-up').onclick = () => lockedAction(d.id, () => move(d.id, 'up'));
-            card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => setHeight(d.id, 'down'));
-            card.querySelector('.btn-sit').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "sit"));
-            card.querySelector('.btn-stand').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "stand"));
-            card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
-            card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
-            // Lock button is visible but non-functional for now
-            card.querySelector('.lock-btn').onclick = null;
-            card.querySelector('.schedule-btn').onclick = () => schedule(d.id);
 
             // Favorite buttons
             if (!document.getElementById(`fav_save_${d.id}`)) {
@@ -247,7 +235,6 @@ async function fetchDesks(desksData) {
                 card.appendChild(favGo);
             }
 
-            // Inputs
             // Assign IDs to inputs/buttons
             card.querySelector('.height-input').id = `height_${d.id}`;
             card.querySelector('.hour-input').id = `hour_${d.id}`;
@@ -258,6 +245,8 @@ async function fetchDesks(desksData) {
             // Button handlers
             card.querySelector('.btn-up').onclick = () => lockedAction(d.id, () => move(d.id, 'up'));
             card.querySelector('.btn-down').onclick = () => lockedAction(d.id, () => move(d.id, 'down'));
+            card.querySelector('.btn-sit').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "sit"));
+            card.querySelector('.btn-stand').onclick = () => lockedAction(d.id, () => goToPreset(d.id, "stand"));
             card.querySelector('.btn-step').onclick = () => lockedAction(d.id, () => setHeight(d.id));
             card.querySelector('.schedule-btn').onclick = () => lockedAction(d.id, () => schedule(d.id));
             card.querySelector('.lock-btn').onclick = () => toggleLock(d.id);
@@ -305,7 +294,6 @@ async function fetchDesks(desksData) {
             const errorDiv = card.querySelector('.desk-error');
             const hasStatus = d.status && d.status !== 'Normal';
             if (errorDiv) {
-                // current errors (status != Normal) Otherwise 'No current error'
                 if (hasStatus && d.currentError) {
                     const ce = d.currentError;
                     let text = d.status;
@@ -314,7 +302,6 @@ async function fetchDesks(desksData) {
                     errorDiv.classList.remove('no-error');
                     errorDiv.textContent = text;
                 } else {
-                    // No active hindering error
                     errorDiv.style.display = 'block';
                     errorDiv.classList.add('no-error');
                     errorDiv.textContent = 'No current error';
@@ -344,13 +331,11 @@ async function fetchDesks(desksData) {
                 });
             } else {
                 delete window.adminLocks[d.id];
-                // Re-enable controls if previously locked (except non-admin hidden groups)
                 card.classList.remove('locked');
                 card.querySelectorAll('button, input').forEach(el => el.disabled = false);
             }
         }
 
-        // Update lock button state
         const lockBtn = card.querySelector('.lock-btn');
         if (lockBtn) {
             lockBtn.textContent = (window.adminLocks && window.adminLocks[d.id]) || window.lockAll ? "Unlock Desk" : "Lock Desk";
@@ -363,7 +348,6 @@ async function fetchDesks(desksData) {
         const id = card.id.replace("desk_card_", "");
         if (!currentDeskIds.has(id)) card.remove();
     });
-    // Process popups for any new or resolved errors
     try { processPopups(desksData); } catch (e) { console.error('Popup processing failed', e); }
     getSchedule("all");
 }
@@ -378,9 +362,6 @@ async function updatePage() {
     updateCharts(desks);
 }
 
-// -------------------------
-// Control All Desks
-// -------------------------
 async function setHeightAll() {
     const val = document.getElementById('height_all').value;
     if (!val || isNaN(val)) {

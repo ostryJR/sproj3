@@ -1,5 +1,4 @@
 async function move(id, dir) {
-    // Block if admin-locked or global UI lock-all is active
     if ((window.adminLocks && window.adminLocks[id]) || window.lockAll) {
         alert("Desk is locked");
         return;
