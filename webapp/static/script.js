@@ -13,7 +13,7 @@ async function lockedAction(id, action) {
     }
     if (window.actionLocks && window.actionLocks[id]) return; // prevent concurrent actions
     lockDesk(id);
-    try {s
+    try {
         await action();
         await fetchDesks();
     } finally {
